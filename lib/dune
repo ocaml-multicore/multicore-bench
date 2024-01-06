@@ -1,0 +1,11 @@
+(library
+ (public_name multicore-bench)
+ (name multicore_bench)
+ (libraries
+  multicore-magic
+  domain-local-await
+  domain_shims
+  mtime
+  mtime.clock.os
+  yojson
+  str))
