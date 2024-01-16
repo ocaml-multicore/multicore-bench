@@ -63,4 +63,14 @@ module Util : sig
     ?rate:Rate.t ->
     Times.t ->
     Yojson.Safe.t list
+
+  module Bits : sig
+    type t
+
+    val create : unit -> t
+    val push : t -> bool -> unit
+    val iter : (bool -> unit) -> t -> unit
+  end
+
+  val generate_push_and_pop_sequence : ?state:Random.State.t -> int -> Bits.t
 end
