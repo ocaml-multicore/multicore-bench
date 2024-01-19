@@ -81,9 +81,10 @@ let record ~n_domains ~budgetf ?(n_warmups = 3) ?(n_runs_min = 7)
         done)
   in
   let domains =
-    Array.init n_domains @@ fun domain_i ->
-    Domain.spawn @@ fun () -> main domain_i
+    Array.init (n_domains - 1) @@ fun domain_i ->
+    Domain.spawn @@ fun () -> main (domain_i + 1)
   in
+  main 0;
   Array.iter Domain.join domains;
   let times_per_domain =
     Array.init (Array.length results) @@ fun i ->
