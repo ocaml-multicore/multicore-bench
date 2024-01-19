@@ -1,7 +1,7 @@
 type t = { inverted : bool; times_per_domain : float array array; runs : int }
 
-let record ~n_domains ~budgetf ?(n_warmups = 3) ?(n_runs_min = 7)
-    ?(before = Fun.id) ~init ~work ?(after = Fun.id) () =
+let record ~budgetf ~n_domains ?(ensure_multi_domain = true) ?(n_warmups = 3)
+    ?(n_runs_min = 7) ?(before = Fun.id) ~init ~work ?(after = Fun.id) () =
   let barrier_init = Barrier.make n_domains in
   let barrier_before = Barrier.make n_domains in
   let barrier_after = Barrier.make n_domains in
@@ -11,6 +11,16 @@ let record ~n_domains ~budgetf ?(n_warmups = 3) ?(n_runs_min = 7)
   in
   let budget_used = ref false |> Multicore_magic.copy_as_padded in
   let runs = ref 0 |> Multicore_magic.copy_as_padded in
+  let exit = ref false in
+  let extra_domain =
+    if n_domains = 1 && ensure_multi_domain then
+      Some
+        ( Domain.spawn @@ fun () ->
+          while not !exit do
+            Domain.cpu_relax ()
+          done )
+    else None
+  in
   Gc.full_major ();
   let budget_start = Mtime_clock.elapsed () in
   let prepare_for_await () =
@@ -86,6 +96,8 @@ let record ~n_domains ~budgetf ?(n_warmups = 3) ?(n_runs_min = 7)
   in
   main 0;
   Array.iter Domain.join domains;
+  exit := true;
+  Option.iter Domain.join extra_domain;
   let times_per_domain =
     Array.init (Array.length results) @@ fun i ->
     Stack.to_seq results.(i) |> Array.of_seq

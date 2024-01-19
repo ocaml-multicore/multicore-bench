@@ -2,8 +2,9 @@ module Times : sig
   type t
 
   val record :
-    n_domains:int ->
     budgetf:float ->
+    n_domains:int ->
+    ?ensure_multi_domain:bool ->
     ?n_warmups:int ->
     ?n_runs_min:int ->
     ?before:(unit -> unit) ->
