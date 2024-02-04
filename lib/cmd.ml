@@ -1,6 +1,7 @@
-let run ~benchmarks () =
-  let budgetf = ref 0.025 in
-  let filters = ref [] in
+let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(argv = Sys.argv)
+    ?(flush = true) () =
+  let budgetf = ref budgetf in
+  let filters = ref filters in
 
   let rec specs =
     [
@@ -17,15 +18,18 @@ let run ~benchmarks () =
           Benchmarks:\n\n\
           %s\n\n\
           Options:\n"
-         (Filename.basename Sys.argv.(0))
+         (Filename.basename argv.(0))
          (benchmarks
          |> List.map (fun (name, _) -> "  " ^ name)
          |> String.concat "\n"));
     exit 1
   in
-  Arg.parse specs (fun filter -> filters := filter :: !filters) "";
+  Arg.parse_argv argv specs (fun filter -> filters := filter :: !filters) "";
 
   let budgetf = !budgetf in
+
+  if budgetf < 0.0 || 60.0 *. 60.0 < budgetf then
+    invalid_arg "budgetf out of range";
 
   let run (name, fn) =
     let metrics = fn ~budgetf in
@@ -35,16 +39,19 @@ let run ~benchmarks () =
   let filter =
     match !filters with
     | [] -> Fun.const true
-    | filters -> (
+    | filters -> begin
         let regexps = filters |> List.map Str.regexp in
         fun (name, _) ->
           regexps
           |> List.exists @@ fun regexp ->
              match Str.search_forward regexp name 0 with
              | _ -> true
-             | exception Not_found -> false)
+             | exception Not_found -> false
+      end
   in
 
   `Assoc
     [ ("results", `List (benchmarks |> List.filter filter |> List.map run)) ]
-  |> Yojson.Safe.pretty_print ~std:true Format.std_formatter
+  |> Yojson.Safe.pretty_print ~std:true Format.std_formatter;
+
+  if flush then Format.print_flush ()

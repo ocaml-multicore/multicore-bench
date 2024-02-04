@@ -3,8 +3,9 @@ type t = { inverted : bool; times_per_domain : float array array; runs : int }
 let record ~budgetf ~n_domains ?(ensure_multi_domain = true)
     ?(domain_local_await = `Busy_wait) ?(n_warmups = 3) ?(n_runs_min = 7)
     ?(before = Fun.id) ~init ~work ?(after = Fun.id) () =
-  let barrier_init = Barrier.make n_domains in
   let barrier_before = Barrier.make n_domains in
+  let barrier_init = Barrier.make n_domains in
+  let barrier_work = Barrier.make n_domains in
   let barrier_after = Barrier.make n_domains in
   let results =
     Array.init n_domains @@ fun _ ->
@@ -52,18 +53,20 @@ let record ~budgetf ~n_domains ?(ensure_multi_domain = true)
   let main domain_i =
     let benchmark () =
       for _ = 1 to n_warmups do
+        Barrier.await barrier_before;
         if domain_i = 0 then begin
           before ();
           Gc.major ()
         end;
+        Barrier.await barrier_init;
         let state = init domain_i in
-        Barrier.await barrier_before;
+        Barrier.await barrier_work;
         work domain_i state;
         Barrier.await barrier_after;
         if domain_i = 0 then after ()
       done;
       while !runs < n_runs_min || not !budget_used do
-        Barrier.await barrier_init;
+        Barrier.await barrier_before;
         if domain_i = 0 then begin
           before ();
           if
@@ -78,8 +81,9 @@ let record ~budgetf ~n_domains ?(ensure_multi_domain = true)
           incr runs;
           Gc.major ()
         end;
+        Barrier.await barrier_init;
         let state = init domain_i in
-        Barrier.await barrier_before;
+        Barrier.await barrier_work;
         let start = Mtime_clock.elapsed () in
         work domain_i state;
         let stop = Mtime_clock.elapsed () in
@@ -131,3 +135,103 @@ let invert { inverted; times_per_domain; runs } =
       Array.map (Array.map (fun v -> 1.0 /. v)) times_per_domain;
     runs;
   }
+
+module Stats = struct
+  type t = {
+    mean : float;
+    median : float;
+    sd : float;
+    inverted : bool;
+    best : float;
+    runs : int;
+  }
+
+  let scale factor t =
+    {
+      t with
+      mean = t.mean *. factor;
+      median = t.median *. factor;
+      sd = t.sd *. factor;
+      best = t.best *. factor;
+    }
+
+  let mean_of times =
+    Array.fold_left ( +. ) 0.0 times /. Float.of_int (Array.length times)
+
+  let sd_of times mean =
+    Float.sqrt
+      (mean_of
+         (Array.map
+            (fun v ->
+              let d = v -. mean in
+              d *. d)
+            times))
+
+  let median_of times =
+    Array.sort Float.compare times;
+    let n = Array.length times in
+    if n land 1 = 0 then (times.((n asr 1) - 1) +. times.(n asr 1)) /. 2.0
+    else times.(n asr 1)
+
+  let of_times { inverted; times_per_domain; runs } =
+    let domains = Array.length times_per_domain in
+    let n = Array.length times_per_domain.(0) in
+    let times = Array.create_float n in
+    for run_i = 0 to n - 1 do
+      times.(run_i) <- 0.0;
+      for domain_i = 0 to domains - 1 do
+        times.(run_i) <- times.(run_i) +. times_per_domain.(domain_i).(run_i)
+      done
+    done;
+    let mean = mean_of times in
+    let sd = sd_of times mean in
+    let median = median_of times in
+    let best =
+      if inverted then Array.fold_left Float.max Float.min_float times
+      else Array.fold_left Float.min Float.max_float times
+    in
+    { mean; sd; median; inverted; best; runs }
+
+  let to_nonbreaking s =
+    s |> String.split_on_char ' '
+    |> String.concat " " (* a non-breaking space *)
+
+  let to_json ~name ~description ~units t =
+    let trend =
+      if t.inverted then `String "higher-is-better"
+      else `String "lower-is-better"
+    in
+    [
+      `Assoc
+        [
+          ("name", `String (to_nonbreaking name));
+          ("value", `Float t.median);
+          ("units", `String units);
+          ("trend", trend);
+          ("description", `String description);
+          ("#best", `Float t.best);
+          ("#mean", `Float t.mean);
+          ("#median", `Float t.median);
+          ("#sd", `Float t.sd);
+          ("#runs", `Int t.runs);
+        ];
+    ]
+end
+
+let to_thruput_metrics ~n ~singular ?(plural = singular ^ "s") ~config
+    ?(unit_of_time = `ns) ?(unit_of_rate = `M) times =
+  List.concat
+    [
+      times |> Stats.of_times
+      |> Stats.scale (Unit_of_time.to_multiplier unit_of_time /. Float.of_int n)
+      |> Stats.to_json
+           ~name:(Printf.sprintf "time per %s/%s" singular config)
+           ~description:(Printf.sprintf "Time to process one %s" singular)
+           ~units:(Unit_of_time.to_mnemonic unit_of_time);
+      times |> average |> invert |> Stats.of_times
+      |> Stats.scale (Float.of_int n /. Unit_of_rate.to_divisor unit_of_rate)
+      |> Stats.to_json
+           ~name:(Printf.sprintf "%s over time/%s" plural config)
+           ~description:(Printf.sprintf "Total number of %s processed" plural)
+           ~units:(Unit_of_rate.to_mnemonic unit_of_rate);
+    ]

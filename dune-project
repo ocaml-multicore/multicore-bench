@@ -21,7 +21,8 @@
 
 (package
  (name multicore-bench)
- (synopsis "Framework for benchmarking on multiple cores on current-bench")
+ (synopsis
+  "Framework for writing multicore benchmark executables to run on current-bench")
  (depends
   (ocaml
    (>= 4.13.0))
@@ -35,6 +36,10 @@
    (>= 2.1.0))
   (domain_shims
    (>= 0.1.0))
+  (mdx
+   (and
+    (>= 2.3.1)
+    :with-test))
   (odoc
    (and
     (>= 2.2.0)
