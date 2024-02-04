@@ -1,11 +1,26 @@
+(* -*- tuareg -*- *)
+
+let maybe_domain_shims =
+  if Jbuild_plugin.V1.ocaml_version < "5" then "domain_shims" else ""
+
+let () =
+  Jbuild_plugin.V1.send
+  @@ {|
+
 (library
  (public_name multicore-bench)
  (name multicore_bench)
  (libraries
   multicore-magic
   domain-local-await
-  domain_shims
   mtime
   mtime.clock.os
   yojson
-  str))
+  str |}
+  ^ maybe_domain_shims
+  ^ {| ))
+
+(mdx
+ (libraries multicore-bench)
+ (files multicore_bench.mli))
+|}
