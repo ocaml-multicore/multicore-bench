@@ -24,9 +24,7 @@
  (synopsis "Framework for benchmarking on multiple cores on current-bench")
  (depends
   (ocaml
-   (>= 4.12.0))
-  (backoff
-   (>= 0.1.0))
+   (>= 4.13.0))
   (domain-local-await
    (>= 1.0.0))
   (multicore-magic
