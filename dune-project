@@ -26,7 +26,7 @@
   (ocaml
    (>= 4.13.0))
   (domain-local-await
-   (>= 1.0.0))
+   (>= 1.0.1))
   (multicore-magic
    (>= 2.1.0))
   (mtime
