@@ -1,7 +1,8 @@
 type t = { inverted : bool; times_per_domain : float array array; runs : int }
 
-let record ~budgetf ~n_domains ?(ensure_multi_domain = true) ?(n_warmups = 3)
-    ?(n_runs_min = 7) ?(before = Fun.id) ~init ~work ?(after = Fun.id) () =
+let record ~budgetf ~n_domains ?(ensure_multi_domain = true)
+    ?(domain_local_await = `Busy_wait) ?(n_warmups = 3) ?(n_runs_min = 7)
+    ?(before = Fun.id) ~init ~work ?(after = Fun.id) () =
   let barrier_init = Barrier.make n_domains in
   let barrier_before = Barrier.make n_domains in
   let barrier_after = Barrier.make n_domains in
@@ -23,7 +24,7 @@ let record ~budgetf ~n_domains ?(ensure_multi_domain = true) ?(n_warmups = 3)
   in
   Gc.full_major ();
   let budget_start = Mtime_clock.elapsed () in
-  let prepare_for_await () =
+  let with_busy_wait () =
     let open struct
       type state = Init | Released | Awaiting of { mutable released : bool }
     end in
@@ -49,46 +50,52 @@ let record ~budgetf ~n_domains ?(ensure_multi_domain = true) ?(n_warmups = 3)
     Domain_local_await.{ release; await }
   in
   let main domain_i =
-    Domain_local_await.using ~prepare_for_await ~while_running:(fun () ->
-        for _ = 1 to n_warmups do
-          if domain_i = 0 then begin
-            before ();
-            Gc.major ()
-          end;
-          let state = init domain_i in
-          Barrier.await barrier_before;
-          work domain_i state;
-          Barrier.await barrier_after;
-          if domain_i = 0 then after ()
-        done;
-        while !runs < n_runs_min || not !budget_used do
-          Barrier.await barrier_init;
-          if domain_i = 0 then begin
-            before ();
-            if
-              let budget_stop = Mtime_clock.elapsed () in
-              let elapsedf =
-                Mtime.Span.to_float_ns
-                  (Mtime.Span.abs_diff budget_stop budget_start)
-                *. (1. /. 1_000_000_000.0)
-              in
-              budgetf < elapsedf
-            then budget_used := true;
-            incr runs;
-            Gc.major ()
-          end;
-          let state = init domain_i in
-          Barrier.await barrier_before;
-          let start = Mtime_clock.elapsed () in
-          work domain_i state;
-          let stop = Mtime_clock.elapsed () in
-          Barrier.await barrier_after;
-          if domain_i = 0 then after ();
-          Stack.push
-            (Mtime.Span.to_float_ns (Mtime.Span.abs_diff stop start)
-            *. (1. /. 1_000_000_000.0))
-            results.(domain_i)
-        done)
+    let benchmark () =
+      for _ = 1 to n_warmups do
+        if domain_i = 0 then begin
+          before ();
+          Gc.major ()
+        end;
+        let state = init domain_i in
+        Barrier.await barrier_before;
+        work domain_i state;
+        Barrier.await barrier_after;
+        if domain_i = 0 then after ()
+      done;
+      while !runs < n_runs_min || not !budget_used do
+        Barrier.await barrier_init;
+        if domain_i = 0 then begin
+          before ();
+          if
+            let budget_stop = Mtime_clock.elapsed () in
+            let elapsedf =
+              Mtime.Span.to_float_ns
+                (Mtime.Span.abs_diff budget_stop budget_start)
+              *. (1. /. 1_000_000_000.0)
+            in
+            budgetf < elapsedf
+          then budget_used := true;
+          incr runs;
+          Gc.major ()
+        end;
+        let state = init domain_i in
+        Barrier.await barrier_before;
+        let start = Mtime_clock.elapsed () in
+        work domain_i state;
+        let stop = Mtime_clock.elapsed () in
+        Barrier.await barrier_after;
+        if domain_i = 0 then after ();
+        Stack.push
+          (Mtime.Span.to_float_ns (Mtime.Span.abs_diff stop start)
+          *. (1. /. 1_000_000_000.0))
+          results.(domain_i)
+      done
+    in
+    match domain_local_await with
+    | `Busy_wait ->
+        Domain_local_await.using ~prepare_for_await:with_busy_wait
+          ~while_running:benchmark
+    | `Neglect -> benchmark ()
   in
   let domains =
     Array.init (n_domains - 1) @@ fun domain_i ->

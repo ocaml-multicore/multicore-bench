@@ -5,6 +5,7 @@ module Times : sig
     budgetf:float ->
     n_domains:int ->
     ?ensure_multi_domain:bool ->
+    ?domain_local_await:[< `Busy_wait | `Neglect > `Busy_wait ] ->
     ?n_warmups:int ->
     ?n_runs_min:int ->
     ?before:(unit -> unit) ->
