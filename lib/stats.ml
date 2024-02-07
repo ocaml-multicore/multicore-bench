@@ -20,7 +20,13 @@ let mean_of times =
   Array.fold_left ( +. ) 0.0 times /. Float.of_int (Array.length times)
 
 let sd_of times mean =
-  Float.sqrt (mean_of (Array.map (fun v -> Float.abs (v -. mean) ** 2.) times))
+  Float.sqrt
+    (mean_of
+       (Array.map
+          (fun v ->
+            let d = v -. mean in
+            d *. d)
+          times))
 
 let median_of times =
   Array.sort Float.compare times;
