@@ -7,8 +7,8 @@ run on [current-bench](https://github.com/ocurrent/current-bench).
 
 Benchmarking multicore algorithms tends to a require certain amount of setup,
 such as spawning domains, synchronizing them before work, timing the work,
-collecting the times, and joining domains, that this framework tries to care of
-for you as conveniently as possible. Furthermore, benchmarking multicore
+collecting the times, and joining domains, that this framework tries to take
+care of for you as conveniently as possible. Furthermore, benchmarking multicore
 algorithms in OCaml also involves a number of pitfalls related to how the OCaml
 runtime works. For example, when only a single domain is running, several
 operations provided by the OCaml runtime use specialized implementations that
@@ -34,7 +34,9 @@ benchmarks from the
 [Saturn](https://github.com/ocaml-multicore/saturn/tree/main/bench) and
 [Kcas](https://github.com/ocaml-multicore/kcas/tree/main/bench) libraries.
 
-We first open the [`Multicore_bench`](https://ocaml-multicore.github.io/multicore-bench/doc/multicore-bench/Multicore_bench/index.html) module:
+We first open the
+[`Multicore_bench`](https://ocaml-multicore.github.io/multicore-bench/doc/multicore-bench/Multicore_bench/index.html)
+module:
 
 ```ocaml
 # open Multicore_bench
@@ -158,7 +160,8 @@ val benchmarks : (string * Suite.t) list = [("Atomic", <fun>)]
 ```
 
 Usually the list of benchmarks is in the main module of the benchmark executable
-along with an invocation of [`Cmd.run`](https://ocaml-multicore.github.io/multicore-bench/doc/multicore-bench/Multicore_bench/Cmd/index.html#val-run):
+along with an invocation of
+[`Cmd.run`](https://ocaml-multicore.github.io/multicore-bench/doc/multicore-bench/Multicore_bench/Cmd/index.html#val-run):
 
 ```ocaml non-deterministic
 # Cmd.run ~benchmarks ~argv:[||] ()
