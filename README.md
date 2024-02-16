@@ -63,10 +63,12 @@ create a module `Bench_atomic` for our benchmarks suite on atomics:
     (* [run_one] runs a single benchmark with the given budget and number of
        domains. *)
     let run_one ~budgetf ~n_domains () =
-      (* We scale number of operations using [Util.iter_factor], which depends
-         various factors such as whether we are running on a 32- or 64-bit
-         machine, native or bytecode, and whether we are running on multicore
-         OCaml. *)
+      (* We scale the number of operations using [Util.iter_factor], which
+         depends on various factors such as whether we are running on a 32- or
+         64-bit machine, using a native or bytecode compiler, and whether we are
+         running on multicore OCaml.  The idea is to make it possible to use the
+         benchmark executable as a test that can be run even on slow CI
+         machines. *)
       let n = 10 * Util.iter_factor in
 
       (* In this example, [atomic] is the data structure we are benchmarking. *)
@@ -94,7 +96,8 @@ create a module `Bench_atomic` for our benchmarks suite on atomics:
       (* [init] is called on each domain before [work].  The return value of
          [init] is passed to [work]. *)
       let init _domain_index =
-        (* It doesn't matter that we set the atomic multiple times. *)
+        (* It doesn't matter that we set the atomic multiple times.  We could
+           also use a [before] callback to do setup before [work]. *)
         Atomic.set n_ops_to_do n
       in
 
@@ -105,7 +108,7 @@ create a module `Bench_atomic` for our benchmarks suite on atomics:
            of time, we run our own loop to perform the operations.  This has
            pros and cons.  One con is that the loop overhead will be part of the
            measurement, which is something to keep in mind when interpreting the
-           results.  One pro is is that this gives more flexibility in various
+           results.  One pro is that this gives more flexibility in various
            ways. *)
         let rec work () =
           (* We try to allocate some number of operations to perform. *)
