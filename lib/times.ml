@@ -50,6 +50,7 @@ let record ~budgetf ~n_domains ?(ensure_multi_domain = true)
     in
     Domain_local_await.{ release; await }
   in
+  let start_earliest = Atomic.make Mtime.Span.zero in
   let main domain_i =
     let benchmark () =
       for _ = 1 to n_warmups do
@@ -68,6 +69,7 @@ let record ~budgetf ~n_domains ?(ensure_multi_domain = true)
       while !runs < n_runs_min || not !budget_used do
         Barrier.await barrier_before;
         if domain_i = 0 then begin
+          Multicore_magic.fenceless_set start_earliest Mtime.Span.zero;
           before ();
           if
             let budget_stop = Mtime_clock.elapsed () in
@@ -84,13 +86,21 @@ let record ~budgetf ~n_domains ?(ensure_multi_domain = true)
         Barrier.await barrier_init;
         let state = init domain_i in
         Barrier.await barrier_work;
-        let start = Mtime_clock.elapsed () in
+        if Multicore_magic.fenceless_get start_earliest == Mtime.Span.zero then begin
+          let start_current = Mtime_clock.elapsed () in
+          if Multicore_magic.fenceless_get start_earliest == Mtime.Span.zero
+          then
+            Atomic.compare_and_set start_earliest Mtime.Span.zero start_current
+            |> ignore
+        end;
         work domain_i state;
-        let stop = Mtime_clock.elapsed () in
+        let stop_current = Mtime_clock.elapsed () in
         Barrier.await barrier_after;
         if domain_i = 0 then after ();
         Stack.push
-          (Mtime.Span.to_float_ns (Mtime.Span.abs_diff stop start)
+          (Mtime.Span.to_float_ns
+             (Mtime.Span.abs_diff stop_current
+                (Multicore_magic.fenceless_get start_earliest))
           *. (1. /. 1_000_000_000.0))
           results.(domain_i)
       done
