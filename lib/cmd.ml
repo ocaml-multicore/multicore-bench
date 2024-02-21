@@ -1,11 +1,15 @@
-let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(argv = Sys.argv)
-    ?(flush = true) () =
+let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(debug = false)
+    ?(argv = Sys.argv) ?(flush = true) () =
   let budgetf = ref budgetf in
   let filters = ref filters in
+  let debug = ref debug in
 
   let rec specs =
     [
       ("-budget", Arg.Set_float budgetf, "seconds\t  Budget for a benchmark");
+      ( "-debug",
+        Arg.Set debug,
+        "\t  Print progress information to help debugging" );
       ("-help", Unit help, "\t  Show this help message");
       ("--help", Unit help, "\t  Show this help message");
     ]
@@ -32,6 +36,9 @@ let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(argv = Sys.argv)
     invalid_arg "budgetf out of range";
 
   let run (name, fn) =
+    if !debug then
+      (* I wish there was a way to tell dune not to capture stderr. *)
+      Printf.printf "Running: %s\n%!" name;
     let metrics = fn ~budgetf in
     `Assoc [ ("name", `String name); ("metrics", `List metrics) ]
   in

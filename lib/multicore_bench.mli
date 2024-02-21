@@ -141,6 +141,7 @@ module Cmd : sig
     benchmarks:(string * Suite.t) list ->
     ?budgetf:float ->
     ?filters:string list ->
+    ?debug:bool ->
     ?argv:string array ->
     ?flush:bool ->
     unit ->
