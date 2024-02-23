@@ -1,6 +1,7 @@
-# Release notes
+## Next release
 
-All notable changes to this project will be documented in this file.
+- Add `-diff base.json` switch to diff against base results from file
+  (@polytypic)
 
 ## 0.1.1
 
