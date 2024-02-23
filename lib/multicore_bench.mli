@@ -142,6 +142,7 @@ module Cmd : sig
     ?budgetf:float ->
     ?filters:string list ->
     ?debug:bool ->
+    ?diff:string ->
     ?argv:string array ->
     ?flush:bool ->
     unit ->
@@ -158,6 +159,12 @@ module Cmd : sig
       - [~filters]: A list of regular expressions to match names of benchmark
         suites.  If any regular expression matches the name of benchmark, then
         that benchmark will be run.  Defaults to [[]].
+
+      - [~debug]: Print progress information to help debugging.  Defaults to
+        [false].
+
+      - [~diff]: Name of JSON file of results to show diff against.  Defaults to
+        [None].
 
       - [~argv]: Array of command line arguments.  Defaults to [Sys.argv].
 
