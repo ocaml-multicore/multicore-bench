@@ -3,10 +3,7 @@ type t = { inverted : bool; times_per_domain : float array array; runs : int }
 let record ~budgetf ~n_domains ?(ensure_multi_domain = true)
     ?(domain_local_await = `Busy_wait) ?(n_warmups = 3) ?(n_runs_min = 7)
     ?(before = Fun.id) ~init ~work ?(after = Fun.id) () =
-  let barrier_before = Barrier.make n_domains in
-  let barrier_init = Barrier.make n_domains in
-  let barrier_work = Barrier.make n_domains in
-  let barrier_after = Barrier.make n_domains in
+  let barrier = Barrier.make n_domains in
   let results =
     Array.init n_domains @@ fun _ ->
     Stack.create () |> Multicore_magic.copy_as_padded
@@ -54,20 +51,20 @@ let record ~budgetf ~n_domains ?(ensure_multi_domain = true)
   let main domain_i =
     let benchmark () =
       for _ = 1 to n_warmups do
-        Barrier.await barrier_before;
+        Barrier.await barrier;
         if domain_i = 0 then begin
           before ();
           Gc.major ()
         end;
-        Barrier.await barrier_init;
+        Barrier.await barrier;
         let state = init domain_i in
-        Barrier.await barrier_work;
+        Barrier.await barrier;
         work domain_i state;
-        Barrier.await barrier_after;
+        Barrier.await barrier;
         if domain_i = 0 then after ()
       done;
       while !runs < n_runs_min || not !budget_used do
-        Barrier.await barrier_before;
+        Barrier.await barrier;
         if domain_i = 0 then begin
           Multicore_magic.fenceless_set start_earliest Mtime.Span.zero;
           before ();
@@ -83,9 +80,9 @@ let record ~budgetf ~n_domains ?(ensure_multi_domain = true)
           incr runs;
           Gc.major ()
         end;
-        Barrier.await barrier_init;
+        Barrier.await barrier;
         let state = init domain_i in
-        Barrier.await barrier_work;
+        Barrier.await barrier;
         if Multicore_magic.fenceless_get start_earliest == Mtime.Span.zero then begin
           let start_current = Mtime_clock.elapsed () in
           if Multicore_magic.fenceless_get start_earliest == Mtime.Span.zero
@@ -95,7 +92,7 @@ let record ~budgetf ~n_domains ?(ensure_multi_domain = true)
         end;
         work domain_i state;
         let stop_current = Mtime_clock.elapsed () in
-        Barrier.await barrier_after;
+        Barrier.await barrier;
         if domain_i = 0 then after ();
         Stack.push
           (Mtime.Span.to_float_ns
