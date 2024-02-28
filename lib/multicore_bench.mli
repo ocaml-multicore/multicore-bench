@@ -67,16 +67,19 @@ module Times : sig
     ?domain_local_await:[< `Busy_wait | `Neglect > `Busy_wait ] ->
     ?n_warmups:int ->
     ?n_runs_min:int ->
+    ?n_runs_max:int ->
     ?before:(unit -> unit) ->
     init:(int -> 's) ->
+    ?wrap:(int -> 's -> (unit -> unit) -> unit) ->
     work:(int -> 's -> unit) ->
     ?after:(unit -> unit) ->
     unit ->
     t
   (** [record ~budgetf ~n_domains ~init ~work ()] essentially repeatedly runs
-      [work i (init i)] on specified number of domains, [i ∊ [0, n_domains-1]],
-      and records the times that calls of [work] take.  The calls of [work] are
-      synchronized to start as simultaneously as possible.
+      [let x = init i in wrap i x (fun () -> .. work i x ..)] on specified
+      number of domains, [i ∊ [0, n_domains-1]], and records the times that
+      calls of [work] take.  The calls of [work] are synchronized to start as
+      simultaneously as possible.
 
       Optional arguments:
 
@@ -95,6 +98,9 @@ module Times : sig
 
       - [~n_runs_min]: Specifies the minimum number of timed runs.  The upper
         bound is determined dynamically based on [budgetf]. Defaults to [7].
+
+      - [~n_runs_max]: Specifies the maximum number of timed runs.  Defaults to
+        [1023].
 
       - [~before]: Specifies an action to run on one domain before [init].
 
