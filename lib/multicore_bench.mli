@@ -143,12 +143,23 @@ end
 module Cmd : sig
   (** Command line interface for a benchmark executable. *)
 
+  type output =
+    [ `JSON
+      (** [`JSON] gives the JSON output for
+          {{:https://github.com/ocurrent/current-bench}current-bench}. *)
+    | `Brief  (** [`Brief] gives concise human readable output. *)
+    | `Diff of string
+      (** [`Diff "path.json"] gives concise human readable diff against results
+          stored in specified [path.json] file. *)
+    ]
+  (** Specifies the output format. *)
+
   val run :
     benchmarks:(string * Suite.t) list ->
     ?budgetf:float ->
     ?filters:string list ->
     ?debug:bool ->
-    ?diff:string ->
+    ?output:output ->
     ?argv:string array ->
     ?flush:bool ->
     unit ->
@@ -169,8 +180,7 @@ module Cmd : sig
       - [~debug]: Print progress information to help debugging.  Defaults to
         [false].
 
-      - [~diff]: Name of JSON file of results to show diff against.  Defaults to
-        [None].
+      - [~output]: Output mode.  Defaults to [`JSON].
 
       - [~argv]: Array of command line arguments.  Defaults to [Sys.argv].
 

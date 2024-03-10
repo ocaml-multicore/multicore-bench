@@ -1,3 +1,17 @@
+type output = [ `JSON | `Brief | `Diff of string ]
+
+let print_brief json =
+  let open Data in
+  json |> Results.parse
+  |> Option.iter @@ fun (results : Results.t) ->
+     results
+     |> List.iter @@ fun (bench : Benchmark.t) ->
+        Printf.printf "%s:\n" bench.name;
+        bench.metrics
+        |> List.iter @@ fun (metric : Metric.t) ->
+           Printf.printf "  %s:\n" metric.name;
+           Printf.printf "    %.2f %s\n" metric.value metric.units
+
 let print_diff base next =
   let open Data in
   Option.pair (Results.parse base) (Results.parse next)
@@ -49,12 +63,12 @@ let build_filter = function
            | exception Not_found -> false
     end
 
-let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(debug = false) ?diff
-    ?(argv = Sys.argv) ?(flush = true) () =
+let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(debug = false)
+    ?(output = `JSON) ?(argv = Sys.argv) ?(flush = true) () =
   let budgetf = ref budgetf in
   let filters = ref filters in
   let debug = ref debug in
-  let diff = ref diff in
+  let output = ref output in
 
   let rec specs =
     [
@@ -63,8 +77,11 @@ let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(debug = false) ?diff
         Arg.Set debug,
         "\t  Print progress information to help debugging" );
       ( "-diff",
-        Arg.String (fun path -> diff := Some path),
+        Arg.String (fun path -> output := `Diff path),
         "path.json\t  Show diff against specified base results" );
+      ( "-brief",
+        Arg.Unit (fun () -> output := `Brief),
+        "\t  Show brief human readable results." );
       ("-help", Unit help, "\t  Show this help message");
       ("--help", Unit help, "\t  Show this help message");
     ]
@@ -100,9 +117,10 @@ let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(debug = false) ?diff
   in
 
   begin
-    match !diff with
-    | None -> Yojson.Safe.pretty_print ~std:true Format.std_formatter results
-    | Some fname -> print_diff (Yojson.Safe.from_file fname) results
+    match !output with
+    | `JSON -> Yojson.Safe.pretty_print ~std:true Format.std_formatter results
+    | `Brief -> print_brief results
+    | `Diff fname -> print_diff (Yojson.Safe.from_file fname) results
   end;
 
   if flush then Format.print_flush ()
