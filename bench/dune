@@ -1,0 +1,18 @@
+(* -*- tuareg -*- *)
+
+let maybe_domain_shims_and_threads =
+  if Jbuild_plugin.V1.ocaml_version < "5" then "domain_shims threads.posix"
+  else ""
+
+let () =
+  Jbuild_plugin.V1.send
+  @@ {|
+
+(test
+ (name main)
+ (libraries
+  multicore-bench
+  backoff
+  multicore-magic |}
+  ^ maybe_domain_shims_and_threads ^ {| ))
+|}
