@@ -12,6 +12,9 @@ let print_brief json =
            Printf.printf "  %s:\n" metric.name;
            Printf.printf "    %.2f %s\n" metric.value metric.units
 
+let worse_colors = [| 196; 197; 198; 199; 200; 201 |]
+let better_colors = [| 46; 47; 48; 49; 50; 51 |]
+
 let print_diff base next =
   let open Data in
   Option.pair (Results.parse base) (Results.parse next)
@@ -19,31 +22,45 @@ let print_diff base next =
      List.zip_by Benchmark.compare_by_name base next
      |> List.iter @@ fun ((base : Benchmark.t), (next : Benchmark.t)) ->
         Printf.printf "%s:\n" base.name;
-        List.zip_by Metric.compare_by_name base.metrics next.metrics
+        let zipped =
+          List.zip_by Metric.compare_by_name base.metrics next.metrics
+        in
+        let extreme_of join trend =
+          List.fold_left
+            (fun acc ((base : Metric.t), (next : Metric.t)) ->
+              if trend <> base.trend || trend <> next.trend then acc
+              else join acc (next.value /. base.value))
+            1.0 zipped
+        in
+        let min_higher = extreme_of Float.min `Higher_is_better in
+        let max_higher = extreme_of Float.max `Higher_is_better in
+        let min_lower = extreme_of Float.min `Lower_is_better in
+        let max_lower = extreme_of Float.max `Lower_is_better in
+        zipped
         |> List.iter @@ fun ((base : Metric.t), (next : Metric.t)) ->
            Printf.printf "  %s:\n" base.name;
            if base.trend <> next.trend || base.units <> next.units then
              Printf.printf "    %.2f %s\n" next.value next.units
            else
              let times = next.value /. base.value in
-             if
-               (next.trend = `Higher_is_better && times < 0.95)
-               || (next.trend = `Lower_is_better && 1.05 < times)
-             then
-               Printf.printf
-                 "    %.2f %s = \x1b[1;31m%.2f\x1b\x1b[0;39;49m x %.2f %s\n"
-                 next.value next.units times base.value base.units
-             else if
-               (next.trend = `Higher_is_better && 1.05 < times)
-               || (next.trend = `Lower_is_better && times < 0.95)
-             then
-               Printf.printf
-                 "    %.2f %s = \x1b[1;32m%.2f\x1b\x1b[0;39;49m x %.2f %s\n"
-                 next.value next.units times base.value base.units
-             else
-               Printf.printf
-                 "    %.2f %s = \x1b[1;33m%.2f\x1b\x1b[0;39;49m x %.2f %s\n"
-                 next.value next.units times base.value base.units
+             let colors, extreme =
+               if next.trend = `Higher_is_better then
+                 if times < 1.0 then (worse_colors, min_higher)
+                 else (better_colors, max_higher)
+               else if 1.0 < times then (worse_colors, max_lower)
+               else (better_colors, min_lower)
+             in
+             let range = Float.abs (extreme -. 1.0) in
+             let color =
+               colors.(Float.to_int
+                         (Float.round
+                            (Float.of_int (Array.length colors - 1)
+                            *. Float.abs (extreme -. times)
+                            /. range)))
+             in
+             Printf.printf
+               "    %.2f %s = \x1b[1;38;5;%dm%.2f\x1b\x1b[0;39;49m x %.2f %s\n"
+               next.value next.units color times base.value base.units
 
 let run_benchmark ~budgetf ~debug (name, fn) =
   if debug then
