@@ -8,15 +8,16 @@ license: "ISC"
 homepage: "https://github.com/ocaml-multicore/multicore-bench"
 bug-reports: "https://github.com/ocaml-multicore/multicore-bench/issues"
 depends: [
-  "dune" {>= "3.8"}
-  "ocaml" {>= "4.13.0"}
+  "dune" {>= "3.14"}
   "domain-local-await" {>= "1.0.1"}
   "multicore-magic" {>= "2.1.0"}
   "mtime" {>= "2.0.0"}
   "yojson" {>= "2.1.0"}
   "domain_shims" {>= "0.1.0"}
-  "mdx" {>= "2.3.1" & with-test}
-  "odoc" {>= "2.2.0" & with-doc}
+  "mdx" {>= "2.4.0" & with-test}
+  "sherlodoc" {>= "0.2" & with-doc}
+  "odoc" {>= "2.4.1" & with-doc}
+  "ocaml" {>= "4.13.0"}
 ]
 build: [
   ["dune" "subst"] {dev}

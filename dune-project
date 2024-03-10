@@ -1,4 +1,4 @@
-(lang dune 3.8)
+(lang dune 3.14)
 
 (name multicore-bench)
 
@@ -24,8 +24,6 @@
  (synopsis
   "Framework for writing multicore benchmark executables to run on current-bench")
  (depends
-  (ocaml
-   (>= 4.13.0))
   (domain-local-await
    (>= 1.0.1))
   (multicore-magic
@@ -36,11 +34,20 @@
    (>= 2.1.0))
   (domain_shims
    (>= 0.1.0))
+  ;; Test dependencies
   (mdx
    (and
-    (>= 2.3.1)
+    (>= 2.4.0)
     :with-test))
+  ;; Documentation dependencies
+  (sherlodoc
+   (and
+    (>= 0.2)
+    :with-doc))
   (odoc
    (and
-    (>= 2.2.0)
-    :with-doc))))
+    (>= 2.4.1)
+    :with-doc))
+  ;; OCaml version
+  (ocaml
+   (>= 4.13.0))))
