@@ -1,4 +1,4 @@
-## Next release
+## 0.1.2
 
 - Add `-brief` to show results in a concise human readable format (@polytypic)
 - Add support for `wrap`ping the work without timing `wrap` itself (@polytypic)
