@@ -34,7 +34,8 @@ would write a benchmark as a command line executable and would likely compile it
 in release mode with a native compiler. You can find examples of multicore
 benchmarks from the
 [Saturn](https://github.com/ocaml-multicore/saturn/tree/main/bench) and
-[Kcas](https://github.com/ocaml-multicore/kcas/tree/main/bench) libraries.
+[Kcas](https://github.com/ocaml-multicore/kcas/tree/main/bench) libraries and
+from the [bench](bench) directory of this repository.
 
 We first open the
 [`Multicore_bench`](https://ocaml-multicore.github.io/multicore-bench/doc/multicore-bench/Multicore_bench/index.html)
