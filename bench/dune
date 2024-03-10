@@ -10,6 +10,8 @@ let () =
 
 (test
  (name main)
+ (action
+  (run %{test} -brief))
  (libraries
   multicore-bench
   backoff

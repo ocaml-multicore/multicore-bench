@@ -1,5 +1,6 @@
 ## Next release
 
+- Add `-brief` to show results in a concise human readable format (@polytypic)
 - Add support for `wrap`ping the work without timing `wrap` itself (@polytypic)
 - Add `-diff base.json` switch to diff against base results from file
   (@polytypic)
