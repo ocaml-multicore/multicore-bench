@@ -5,7 +5,8 @@
 # Multicore-bench
 
 Multicore bench is a framework for writing multicore benchmark executables to
-run on [current-bench](https://github.com/ocurrent/current-bench).
+run locally on your computer and on
+[current-bench](https://github.com/ocurrent/current-bench).
 
 Benchmarking multicore algorithms tends to a require certain amount of setup,
 such as spawning domains, synchronizing them before work, timing the work,
@@ -23,6 +24,35 @@ to improve the design along with
 [current-bench](https://github.com/ocurrent/current-bench) in the future to
 allow more useful benchmarking experience.
 
+## Crash course to [current-bench](https://github.com/ocurrent/current-bench)
+
+Note that, at the time of writing this,
+[current-bench](https://github.com/ocurrent/current-bench) is work in progress
+and does not accept enrollment for community projects. However, assuming you
+have access to it, to run multicore benchmarks with
+[current-bench](https://github.com/ocurrent/current-bench) a number of things
+need to be setup:
+
+- You will need a [Makefile](Makefile) with a `bench` target at the root of the
+  project. The [current-bench](https://github.com/ocurrent/current-bench)
+  service will run your benchmarks through that.
+
+- You likely also want to have a [bench.Dockerfile](bench.Dockerfile) and
+  [.dockerignore](.dockerignore) at the root of the project. Make sure that the
+  Dockerfile is layered such that it will pickup opam updates when desired while
+  also avoiding unnecessary work during rebuilds.
+
+- You will also need the benchmarks and that is where this framework may help.
+  You can find examples of multicore benchmarks from the
+  [Saturn](https://github.com/ocaml-multicore/saturn/tree/main/bench) and
+  [Kcas](https://github.com/ocaml-multicore/kcas/tree/main/bench) libraries and
+  from the [bench](bench) directory of this repository.
+
+For multicore benchmarks you will also need to have
+[current-bench](https://github.com/ocurrent/current-bench) configured to use a
+multicore machine, which currently needs to be done by the
+[current-bench](https://github.com/ocurrent/current-bench) maintainers.
+
 ## Example: Benchmarking `Atomic.incr` under contention
 
 Let's look at a simple example with detailed comments of how one might benchmark
@@ -31,11 +61,7 @@ Let's look at a simple example with detailed comments of how one might benchmark
 Note that this example is written here as a
 [MDX](https://github.com/realworldocaml/mdx) document or test. Normally you
 would write a benchmark as a command line executable and would likely compile it
-in release mode with a native compiler. You can find examples of multicore
-benchmarks from the
-[Saturn](https://github.com/ocaml-multicore/saturn/tree/main/bench) and
-[Kcas](https://github.com/ocaml-multicore/kcas/tree/main/bench) libraries and
-from the [bench](bench) directory of this repository.
+in release mode with a native compiler.
 
 We first open the
 [`Multicore_bench`](https://ocaml-multicore.github.io/multicore-bench/doc/multicore-bench/Multicore_bench/index.html)
