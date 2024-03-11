@@ -1,17 +1,5 @@
 type output = [ `JSON | `Brief | `Diff of string ]
 
-let print_brief json =
-  let open Data in
-  json |> Results.parse
-  |> Option.iter @@ fun (results : Results.t) ->
-     results
-     |> List.iter @@ fun (bench : Benchmark.t) ->
-        Printf.printf "%s:\n" bench.name;
-        bench.metrics
-        |> List.iter @@ fun (metric : Metric.t) ->
-           Printf.printf "  %s:\n" metric.name;
-           Printf.printf "    %.2f %s\n" metric.value metric.units
-
 let worse_colors = [| 196; 197; 198; 199; 200; 201 |]
 let better_colors = [| 46; 47; 48; 49; 50; 51 |]
 
@@ -39,8 +27,10 @@ let print_diff base next =
         zipped
         |> List.iter @@ fun ((base : Metric.t), (next : Metric.t)) ->
            Printf.printf "  %s:\n" base.name;
-           if base.trend <> next.trend || base.units <> next.units then
-             Printf.printf "    %.2f %s\n" next.value next.units
+           if
+             base.trend <> next.trend || base.units <> next.units
+             || Float.equal base.value next.value
+           then Printf.printf "    %.2f %s\n" next.value next.units
            else
              let times = next.value /. base.value in
              let colors, extreme =
@@ -136,7 +126,7 @@ let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(debug = false)
   begin
     match !output with
     | `JSON -> Yojson.Safe.pretty_print ~std:true Format.std_formatter results
-    | `Brief -> print_brief results
+    | `Brief -> print_diff results results
     | `Diff fname -> print_diff (Yojson.Safe.from_file fname) results
   end;
 
