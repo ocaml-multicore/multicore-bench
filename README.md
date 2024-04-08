@@ -1,6 +1,6 @@
 [API reference](https://ocaml-multicore.github.io/multicore-bench/doc/multicore-bench/Multicore_bench/index.html)
 &middot;
-[Benchmarks](https://bench.ci.dev/ocaml-multicore/multicore-bench/branch/main)
+[Benchmarks](https://bench.ci.dev/ocaml-multicore/multicore-bench/branch/main?worker=pascal&image=bench.Dockerfile)
 
 # Multicore-bench
 
