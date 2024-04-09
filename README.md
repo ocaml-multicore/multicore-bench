@@ -44,8 +44,9 @@ need to be setup:
 
 - You will also need the benchmarks and that is where this framework may help.
   You can find examples of multicore benchmarks from the
-  [Saturn](https://github.com/ocaml-multicore/saturn/tree/main/bench) and
-  [Kcas](https://github.com/ocaml-multicore/kcas/tree/main/bench) libraries and
+  [Saturn](https://github.com/ocaml-multicore/saturn/tree/main/bench),
+  [Kcas](https://github.com/ocaml-multicore/kcas/tree/main/bench), and
+  [Picos](https://github.com/ocaml-multicore/picos/tree/main/bench) projects and
   from the [bench](bench) directory of this repository.
 
 For multicore benchmarks you will also need to have
