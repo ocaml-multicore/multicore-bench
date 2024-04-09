@@ -15,6 +15,7 @@ let () =
  (libraries
   multicore-bench
   backoff
+  unix
   multicore-magic |}
   ^ maybe_domain_shims_and_threads ^ {| ))
 |}
