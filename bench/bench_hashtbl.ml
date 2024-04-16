@@ -23,7 +23,7 @@ let run_one_domain ~budgetf ?(n_ops = 400 * Util.iter_factor) ?(n_keys = 1000)
     for _ = 1 to n_keys do
       let value = Random.bits () in
       let key = value mod n_keys in
-      Htbl.add t key value
+      Htbl.replace t key value
     done;
 
   let n_ops = (100 + percent_mem) * n_ops / 100 in
@@ -50,7 +50,7 @@ let run_one_domain ~budgetf ?(n_ops = 400 * Util.iter_factor) ?(n_keys = 1000)
               loop (n - 1)
             end
             else if op < limit_add then begin
-              Htbl.add t key value;
+              Htbl.replace t key value;
               loop (n - 1)
             end
             else begin
@@ -85,7 +85,7 @@ let run_one ~budgetf ~n_domains ?(n_ops = 400 * Util.iter_factor)
     for _ = 1 to n_keys do
       let value = Random.bits () in
       let key = value mod n_keys in
-      Htbl.add t key value
+      Htbl.replace t key value
     done;
 
   let n_ops = (100 + percent_mem) * n_ops / 100 in
@@ -115,7 +115,7 @@ let run_one ~budgetf ~n_domains ?(n_ops = 400 * Util.iter_factor)
             end
             else if op < limit_add then begin
               Mutex.lock mutex;
-              Htbl.add t key value;
+              Htbl.replace t key value;
               Mutex.unlock mutex;
               loop (n - 1)
             end
