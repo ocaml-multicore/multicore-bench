@@ -9,11 +9,30 @@
 
     which brings a number of submodules into scope. *)
 
+module Trend : sig
+  (** Dealing with trends. *)
+
+  type t = [ `Lower_is_better | `Higher_is_better ]
+  (** Whether a lower or higher value is better. *)
+end
+
 module Metric : sig
   (** Dealing with benchmark metrics. *)
 
   type t
   (** Represents a metric. *)
+
+  val make :
+    metric:string ->
+    config:string ->
+    value:float ->
+    ?units:string ->
+    ?trend:Trend.t ->
+    ?description:string ->
+    unit ->
+    t
+  (** [make ~metric ~config ~value ... ()] constructs a metric with given
+      specification. *)
 end
 
 module Unit_of_rate : sig

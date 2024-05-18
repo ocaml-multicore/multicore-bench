@@ -268,11 +268,7 @@ module Stats = struct
     in
     { mean; sd; median; inverted; best; runs }
 
-  let to_nonbreaking s =
-    s |> String.split_on_char ' '
-    |> String.concat " " (* a non-breaking space *)
-
-  let to_json ~name ~description ~units t =
+  let to_json ~metric ~config ~description ~units t =
     let trend =
       if t.inverted then `String "higher-is-better"
       else `String "lower-is-better"
@@ -280,7 +276,7 @@ module Stats = struct
     [
       `Assoc
         [
-          ("name", `String (to_nonbreaking name));
+          ("name", `String (Metric.name ~metric ~config));
           ("value", `Float t.median);
           ("units", `String units);
           ("trend", trend);
@@ -301,13 +297,15 @@ let to_thruput_metrics ~n ~singular ?(plural = singular ^ "s") ~config
       times |> Stats.of_times
       |> Stats.scale (Unit_of_time.to_multiplier unit_of_time /. Float.of_int n)
       |> Stats.to_json
-           ~name:(Printf.sprintf "time per %s/%s" singular config)
+           ~metric:(Printf.sprintf "time per %s" singular)
+           ~config
            ~description:(Printf.sprintf "Time to process one %s" singular)
            ~units:(Unit_of_time.to_mnemonic unit_of_time);
       times |> average |> invert |> Stats.of_times
       |> Stats.scale (Float.of_int n /. Unit_of_rate.to_divisor unit_of_rate)
       |> Stats.to_json
-           ~name:(Printf.sprintf "%s over time/%s" plural config)
+           ~metric:(Printf.sprintf "%s over time" plural)
+           ~config
            ~description:(Printf.sprintf "Total number of %s processed" plural)
            ~units:(Unit_of_rate.to_mnemonic unit_of_rate);
     ]
