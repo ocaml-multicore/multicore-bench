@@ -141,7 +141,7 @@ module Times : sig
 
       Optional arguments:
 
-      - [~plural]: Plural for the operation.  Defaults to [singular + "s"].
+      - [~plural]: Plural for the operation.  Defaults to [singular ^ "s"].
 
       - [~unit_of_time]: Unit of time for the duration of a single operation.
         Defaults to [`ns].
