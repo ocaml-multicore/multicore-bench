@@ -25,13 +25,12 @@ module Metric : sig
   val make :
     metric:string ->
     config:string ->
-    value:float ->
     ?units:string ->
-    ?trend:Trend.t ->
+    ?trend:[< Trend.t ] ->
     ?description:string ->
-    unit ->
+    [< `Float of float ] ->
     t
-  (** [make ~metric ~config ~value ... ()] constructs a metric with given
+  (** [make ~metric ~config value] constructs a metric with given
       specification. *)
 end
 

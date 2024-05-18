@@ -5,13 +5,14 @@ let to_nonbreaking s =
 
 let name ~metric ~config = to_nonbreaking (metric ^ "/" ^ config)
 
-let make ~metric ~config ~value ?units ?trend ?description () =
+let make ~metric ~config ?units ?trend ?description
+    (value : [< `Float of float ]) =
   let[@inline] ( @: ) x_opt xs =
     match x_opt with None -> xs | Some x -> x :: xs
   in
   `Assoc
     (Some ("name", `String (name ~metric ~config))
-    @: Some ("value", `Float value)
+    @: Some ("value", (value :> t))
     @: Option.map (fun units -> ("units", `String units)) units
     @: Option.map (fun trend -> ("trend", Trend.to_json trend)) trend
     @: Option.map
