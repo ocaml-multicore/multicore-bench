@@ -1,3 +1,7 @@
+## 0.1.3
+
+- Add `Metric.make` to allow ad hoc metrics (@polytypic)
+
 ## 0.1.2
 
 - Add `-brief` to show results in a concise human readable format (@polytypic)
