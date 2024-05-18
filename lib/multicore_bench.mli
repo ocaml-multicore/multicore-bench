@@ -45,10 +45,10 @@ module Unit_of_rate : sig
     | `G  (** 10{^ 9}/s or G/s *) ]
   (** Represents a unit of rate, i.e. how many per second. *)
 
-  val to_divisor : t -> float
+  val to_divisor : [< t ] -> float
   (** [to_divisor t] converts the unit of rate [t] to a divisor. *)
 
-  val to_mnemonic : t -> string
+  val to_mnemonic : [< t ] -> string
   (** [to_mnemonic t] returns a human readable mnemonic for the unit of rate
       [t]. *)
 end
@@ -63,10 +63,10 @@ module Unit_of_time : sig
     | `ns  (** nanoseconds *) ]
   (** Represents a unit of time. *)
 
-  val to_multiplier : t -> float
+  val to_multiplier : [< t ] -> float
   (** [to_multiplier t] converts the unit of time [t] to a multiplier. *)
 
-  val to_mnemonic : t -> string
+  val to_mnemonic : [< t ] -> string
   (** [to_mnemonic t] returns a human readable mnemonic for the unit of time
       [t]. *)
 end
