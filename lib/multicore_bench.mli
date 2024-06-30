@@ -180,6 +180,7 @@ module Cmd : sig
     ?output:output ->
     ?argv:string array ->
     ?flush:bool ->
+    ?randomize:bool ->
     unit ->
     unit
   (** [run ~benchmarks ()] interprets command line arguments and runs the
@@ -204,6 +205,9 @@ module Cmd : sig
 
       - [~flush]: Whether to flush the standard output after writing it.
         Defaults to [true].
+
+      - [~randomize]: Whether to randomize the order of suites or not.  Defaults
+        to [true].
 
       Command line arguments take precedence over the optional arguments.  In
       other words, you can specify the optional arguments to give defaults for

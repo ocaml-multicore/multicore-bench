@@ -1,3 +1,7 @@
+## Next version
+
+- Randomize suites to expose variation from effects on runtime (@polytypic)
+
 ## 0.1.3
 
 - Add `Metric.make` to allow ad hoc metrics (@polytypic)

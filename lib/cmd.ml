@@ -70,12 +70,26 @@ let build_filter = function
            | exception Not_found -> false
     end
 
+let shuffle xs =
+  let xs = Array.of_list xs in
+  let state = Random.State.make_self_init () in
+  let n = Array.length xs in
+  for i = 0 to n - 2 do
+    let j = Random.State.int state (n - i) + i in
+    let t = xs.(i) in
+    xs.(i) <- xs.(j);
+    xs.(j) <- t
+  done;
+  Array.to_list xs
+
 let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(debug = false)
-    ?(output = `JSON) ?(argv = Sys.argv) ?(flush = true) () =
+    ?(output = `JSON) ?(argv = Sys.argv) ?(flush = true) ?(randomize = true) ()
+    =
   let budgetf = ref budgetf in
   let filters = ref filters in
   let debug = ref debug in
   let output = ref output in
+  let randomize = ref randomize in
 
   let rec specs =
     [
@@ -112,16 +126,20 @@ let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(debug = false)
   if !budgetf < 0.0 || 60.0 *. 60.0 < !budgetf then
     invalid_arg "budgetf out of range";
 
-  let results =
-    `Assoc
-      [
-        ( "results",
-          `List
-            (benchmarks
-            |> List.filter (build_filter !filters)
-            |> List.map (run_benchmark ~debug:!debug ~budgetf:!budgetf)) );
-      ]
+  let benchmark_results =
+    benchmarks
+    |> List.filter (build_filter !filters)
+    |> (if !randomize then shuffle else Fun.id)
+    |> List.map (run_benchmark ~debug:!debug ~budgetf:!budgetf)
+    |> List.sort @@ fun l r ->
+       let name_of = function
+         | `Assoc (("name", `String name) :: _) -> name
+         | _ -> failwith "bug"
+       in
+       String.compare (name_of l) (name_of r)
   in
+
+  let results = `Assoc [ ("results", `List benchmark_results) ] in
 
   begin
     match !output with
