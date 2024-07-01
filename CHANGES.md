@@ -1,5 +1,6 @@
 ## Next version
 
+- Automatically filter benchmarks by given diff base file (@polytypic)
 - Randomize suites to expose variation from effects on runtime (@polytypic)
 
 ## 0.1.3
