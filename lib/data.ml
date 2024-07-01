@@ -42,6 +42,7 @@ module Benchmark = struct
     >+> fun (name :: metrics) -> { name; metrics }
 
   let compare_by_name x y = String.compare x.name y.name
+  let name x = x.name
 end
 
 module Results = struct
