@@ -8,6 +8,7 @@ let benchmarks =
     ("Stack", Bench_stack.run_suite);
     ("Unix", Bench_unix.run_suite);
     ("Atomic incr", Bench_incr.run_suite);
+    ("Bounded_q", Bench_bounded_q.run_suite);
   ]
 
 let () = Multicore_bench.Cmd.run ~benchmarks ()
