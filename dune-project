@@ -34,11 +34,9 @@
    (>= 2.1.0))
   (domain_shims
    (>= 0.1.0))
-  ;; Test dependencies
   (backoff
-   (and
-    (>= 0.1.0)
-    :with-test))
+   (>= 0.1.0))
+  ;; Test dependencies
   (mdx
    (and
     (>= 2.4.0)

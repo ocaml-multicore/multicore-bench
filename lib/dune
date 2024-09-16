@@ -11,6 +11,7 @@ let () =
  (public_name multicore-bench)
  (name multicore_bench)
  (libraries
+  backoff
   multicore-magic
   domain-local-await
   mtime
