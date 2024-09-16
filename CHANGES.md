@@ -1,3 +1,7 @@
+## 0.1.5
+
+- Improved error handling (@polytypic)
+
 ## 0.1.4
 
 - Automatically filter benchmarks by given diff base file (@polytypic)

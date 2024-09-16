@@ -14,7 +14,7 @@ depends: [
   "mtime" {>= "2.0.0"}
   "yojson" {>= "2.1.0"}
   "domain_shims" {>= "0.1.0"}
-  "backoff" {>= "0.1.0" & with-test}
+  "backoff" {>= "0.1.0"}
   "mdx" {>= "2.4.0" & with-test}
   "sherlodoc" {>= "0.2" & with-doc}
   "odoc" {>= "2.4.1" & with-doc}

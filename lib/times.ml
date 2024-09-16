@@ -1,3 +1,5 @@
+open Finally
+
 type t = { inverted : bool; times_per_domain : Float.Array.t array; runs : int }
 
 let with_busy_wait () =
@@ -76,108 +78,138 @@ let record (type a) ~budgetf ~n_domains ?(ensure_multi_domain = true)
       runs = 0;
     }
   in
-  let extra_domain =
-    if n_domains = 1 && ensure_multi_domain then
-      Some
-        ( Domain.spawn @@ fun () ->
-          while not s.exit do
-            Domain.cpu_relax ()
-          done )
-    else None
-  in
-  let main i =
-    let benchmark () =
-      let open struct
-        type local = {
-          domain_i : int;
-          mutable stop_current : Mtime.Span.t;
-          mutable state : a;
-        }
-      end in
-      let l =
-        Multicore_magic.copy_as_padded
-          { domain_i = i; stop_current = Mtime.Span.zero; state = Obj.magic () }
-      in
-      let doit =
-        Multicore_magic.copy_as_padded @@ fun () ->
-        Barrier.await s.barrier;
-        if Multicore_magic.fenceless_get s.start_earliest == Mtime.Span.zero
-        then begin
-          let start_current = Mtime_clock.elapsed () in
-          if Multicore_magic.fenceless_get s.start_earliest == Mtime.Span.zero
-          then
-            Atomic.compare_and_set s.start_earliest Mtime.Span.zero
-              start_current
-            |> ignore
-        end;
-        s.work l.domain_i l.state;
-        l.stop_current <- Mtime_clock.elapsed ()
-      in
-      (* warmup runs *)
-      for _ = 1 to s.n_warmups do
-        if l.domain_i = 0 then begin
-          Multicore_magic.fenceless_set s.start_earliest Mtime.Span.zero;
-          s.before ();
-          Gc.major ()
-        end;
-        Barrier.await s.barrier;
-        l.state <- s.init l.domain_i;
-        s.wrap l.domain_i l.state doit;
-        Barrier.await s.barrier;
-        l.state <- Obj.magic ();
-        if l.domain_i = 0 then s.after ();
-        Barrier.await s.barrier
-      done;
-      (* timed runs *)
-      while s.runs < s.n_runs_min || not s.budget_used do
-        if l.domain_i = 0 then begin
-          Multicore_magic.fenceless_set s.start_earliest Mtime.Span.zero;
-          s.before ();
-          Gc.major ()
-        end;
-        Barrier.await s.barrier;
-        l.state <- s.init l.domain_i;
-        s.wrap l.domain_i l.state doit;
-        Barrier.await s.barrier;
-        l.state <- Obj.magic ();
-        Float.Array.set s.results.(l.domain_i) s.runs
-          (Mtime.Span.to_float_ns
-             (Mtime.Span.abs_diff l.stop_current
-                (Multicore_magic.fenceless_get s.start_earliest))
-          *. (1. /. 1_000_000_000.0));
-        l.stop_current <- Mtime.Span.zero;
-        Barrier.await s.barrier;
-        if l.domain_i = 0 then begin
-          s.after ();
-          s.runs <- s.runs + 1;
-          if
-            let budget_stop = Mtime_clock.elapsed () in
-            let elapsedf =
-              Mtime.Span.to_float_ns
-                (Mtime.Span.abs_diff budget_stop s.budget_start)
-              *. (1. /. 1_000_000_000.0)
-            in
-            s.budgetf < elapsedf
-            || Float.Array.length s.results.(l.domain_i) <= s.runs
-          then s.budget_used <- true
-        end;
-        Barrier.await s.barrier
-      done
+  begin
+    let@ _extra_domain =
+      finally (Option.iter Domain.join) @@ fun () ->
+      if n_domains = 1 && ensure_multi_domain then
+        Some
+          ( Domain.spawn @@ fun () ->
+            while not s.exit do
+              Domain.cpu_relax ()
+            done )
+      else None
     in
-    match domain_local_await with
-    | `Busy_wait ->
-        Domain_local_await.using ~prepare_for_await:with_busy_wait
-          ~while_running:benchmark
-    | `Neglect -> benchmark ()
-  in
-  let domains =
-    Array.init (n_domains - 1) @@ fun domain_i ->
-    Domain.spawn @@ fun () -> main (domain_i + 1)
-  in
-  main 0;
-  s.exit <- true;
-  Array.iter Domain.join domains;
-  Option.iter Domain.join extra_domain;
+    let main i =
+      try
+        let benchmark () =
+          let open struct
+            type local = {
+              domain_i : int;
+              mutable stop_current : Mtime.Span.t;
+              mutable state : a;
+            }
+          end in
+          let l =
+            Multicore_magic.copy_as_padded
+              {
+                domain_i = i;
+                stop_current = Mtime.Span.zero;
+                state = Obj.magic ();
+              }
+          in
+          let doit =
+            Multicore_magic.copy_as_padded @@ fun () ->
+            Barrier.await s.barrier;
+            if Multicore_magic.fenceless_get s.start_earliest == Mtime.Span.zero
+            then begin
+              let start_current = Mtime_clock.elapsed () in
+              if
+                Multicore_magic.fenceless_get s.start_earliest
+                == Mtime.Span.zero
+              then
+                Atomic.compare_and_set s.start_earliest Mtime.Span.zero
+                  start_current
+                |> ignore
+            end;
+            s.work l.domain_i l.state;
+            l.stop_current <- Mtime_clock.elapsed ()
+          in
+          (* warmup runs *)
+          for _ = 1 to s.n_warmups do
+            if l.domain_i = 0 then begin
+              Multicore_magic.fenceless_set s.start_earliest Mtime.Span.zero;
+              s.before ();
+              Gc.major ()
+            end;
+            Barrier.await s.barrier;
+            l.state <- s.init l.domain_i;
+            s.wrap l.domain_i l.state doit;
+            Barrier.await s.barrier;
+            l.state <- Obj.magic ();
+            if l.domain_i = 0 then s.after ();
+            Barrier.await s.barrier
+          done;
+          (* timed runs *)
+          while s.runs < s.n_runs_min || not s.budget_used do
+            if l.domain_i = 0 then begin
+              Multicore_magic.fenceless_set s.start_earliest Mtime.Span.zero;
+              s.before ();
+              Gc.major ()
+            end;
+            Barrier.await s.barrier;
+            l.state <- s.init l.domain_i;
+            s.wrap l.domain_i l.state doit;
+            Barrier.await s.barrier;
+            l.state <- Obj.magic ();
+            Float.Array.set s.results.(l.domain_i) s.runs
+              (Mtime.Span.to_float_ns
+                 (Mtime.Span.abs_diff l.stop_current
+                    (Multicore_magic.fenceless_get s.start_earliest))
+              *. (1. /. 1_000_000_000.0));
+            l.stop_current <- Mtime.Span.zero;
+            Barrier.await s.barrier;
+            if l.domain_i = 0 then begin
+              s.after ();
+              s.runs <- s.runs + 1;
+              if
+                let budget_stop = Mtime_clock.elapsed () in
+                let elapsedf =
+                  Mtime.Span.to_float_ns
+                    (Mtime.Span.abs_diff budget_stop s.budget_start)
+                  *. (1. /. 1_000_000_000.0)
+                in
+                s.budgetf < elapsedf
+                || Float.Array.length s.results.(l.domain_i) <= s.runs
+              then s.budget_used <- true
+            end;
+            Barrier.await s.barrier
+          done
+        in
+        match domain_local_await with
+        | `Busy_wait ->
+            Domain_local_await.using ~prepare_for_await:with_busy_wait
+              ~while_running:benchmark
+        | `Neglect -> benchmark ()
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Barrier.poison s.barrier exn bt;
+        Printexc.raise_with_backtrace exn bt
+    in
+    let rec spawn i =
+      let i = i - 1 in
+      if i = 0 then main 0
+      else
+        let bt_status = Printexc.backtrace_status () in
+        let@ _domain =
+          finally (fun domain ->
+              match Domain.join domain with
+              | None -> ()
+              | Some (exn, bt) -> Printexc.raise_with_backtrace exn bt)
+          @@ fun () ->
+          Domain.spawn @@ fun () ->
+          Printexc.record_backtrace bt_status;
+          match main i with
+          | () -> None
+          | exception exn -> Some (exn, Printexc.get_raw_backtrace ())
+        in
+        spawn i
+    in
+    match spawn n_domains with
+    | () -> s.exit <- true
+    | exception exn ->
+        s.exit <- true;
+        raise exn
+  end;
   let times_per_domain =
     s.results |> Array.map @@ fun times -> Float.Array.sub times 0 s.runs
   in
