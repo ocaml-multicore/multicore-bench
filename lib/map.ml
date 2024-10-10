@@ -1,5 +1,5 @@
-include Stdlib.Set
+include Stdlib.Map
 
 let make (type t) (compare : t -> _) =
   let (module Elt) = Ordered.make compare in
-  (module Make (Elt) : Stdlib.Set.S with type elt = t)
+  (module Make (Elt) : Stdlib.Map.S with type key = t)

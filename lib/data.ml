@@ -30,7 +30,7 @@ module Metric = struct
     >+> fun (name :: value :: units :: trend :: description) ->
     { name; value; units; trend; description }
 
-  let compare_by_name x y = String.compare x.name y.name
+  let name x = x.name
 end
 
 module Benchmark = struct
@@ -41,7 +41,6 @@ module Benchmark = struct
     & Json.prop "metrics" >=> Json.as_list >+> List.filter_map Metric.parse)
     >+> fun (name :: metrics) -> { name; metrics }
 
-  let compare_by_name x y = String.compare x.name y.name
   let name x = x.name
 end
 

@@ -1,3 +1,7 @@
+## Next version
+
+- Fail when benchmark results have duplicates (@polytypic)
+
 ## 0.1.5
 
 - Improved error handling (@polytypic)
