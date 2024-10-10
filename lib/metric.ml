@@ -1,7 +1,9 @@
 type t = Yojson.Safe.t
 
+let a_non_breaking_space = " "
+
 let to_nonbreaking s =
-  s |> String.split_on_char ' ' |> String.concat " " (* a non-breaking space *)
+  s |> String.split_on_char ' ' |> String.concat a_non_breaking_space
 
 let name ~metric ~config = to_nonbreaking (metric ^ "/" ^ config)
 

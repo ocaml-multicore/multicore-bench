@@ -5,12 +5,25 @@ type output = [ `JSON | `Brief | `Diff of string ]
 let worse_colors = [| 196; 197; 198; 199; 200; 201 |]
 let better_colors = [| 46; 47; 48; 49; 50; 51 |]
 
+let replace_non_breaking_spaces =
+  let a_non_breaking_space = Str.regexp " " in
+  Str.global_substitute a_non_breaking_space (fun _ -> " ")
+
+let duplicate kind name x _ =
+  failwith
+    (Printf.sprintf "Duplicate %s: %s" kind
+       (name x |> replace_non_breaking_spaces))
+
 let print_diff base next =
-  List.zip_by Benchmark.compare_by_name base next
+  List.zip_by
+    ~duplicate:(duplicate "benchmark" Benchmark.name)
+    String.compare Benchmark.name base next
   |> List.iter @@ fun ((base : Benchmark.t), (next : Benchmark.t)) ->
      Printf.printf "%s:\n" base.name;
      let zipped =
-       List.zip_by Metric.compare_by_name base.metrics next.metrics
+       List.zip_by
+         ~duplicate:(duplicate "metric" Metric.name)
+         String.compare Metric.name base.metrics next.metrics
      in
      let extreme_of join trend =
        List.fold_left
