@@ -8,7 +8,7 @@ let rec alloc ?(batch = 1000) counter =
   let n = Atomic.get counter in
   if n = 0 then 0
   else
-    let batch = Int.min n batch in
+    let batch = min n batch in
     if Atomic.compare_and_set counter n (n - batch) then batch
     else alloc ~batch counter
 
