@@ -8,7 +8,7 @@ Multicore bench is a framework for writing multicore benchmark executables to
 run locally on your computer and on
 [current-bench](https://github.com/ocurrent/current-bench).
 
-Benchmarking multicore algorithms tends to a require certain amount of setup,
+Benchmarking multicore algorithms tends to require a certain amount of setup,
 such as spawning domains, synchronizing them before work, timing the work,
 collecting the times, and joining domains, that this framework tries to take
 care of for you as conveniently as possible. Furthermore, benchmarking multicore
