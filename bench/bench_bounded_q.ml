@@ -98,18 +98,19 @@ let run_one ~budgetf ~n_adders ~n_takers ?(n_msgs = 50 * Util.iter_factor) () =
 
   let t = Bounded_q.create () in
 
-  let n_msgs_to_take = Atomic.make 0 |> Multicore_magic.copy_as_padded in
-  let n_msgs_to_add = Atomic.make 0 |> Multicore_magic.copy_as_padded in
+  let n_msgs_to_take = Countdown.create ~n_domains:n_takers () in
+  let n_msgs_to_add = Countdown.create ~n_domains:n_adders () in
 
   let init _ =
     assert (Bounded_q.is_empty t);
-    Atomic.set n_msgs_to_take n_msgs;
-    Atomic.set n_msgs_to_add n_msgs
+    Countdown.non_atomic_set n_msgs_to_take n_msgs;
+    Countdown.non_atomic_set n_msgs_to_add n_msgs
   in
   let work i () =
     if i < n_adders then
+      let domain_index = i in
       let rec work () =
-        let n = Util.alloc n_msgs_to_add in
+        let n = Countdown.alloc n_msgs_to_add ~domain_index ~batch:100 in
         if 0 < n then begin
           for i = 1 to n do
             Bounded_q.push t i
@@ -119,8 +120,9 @@ let run_one ~budgetf ~n_adders ~n_takers ?(n_msgs = 50 * Util.iter_factor) () =
       in
       work ()
     else
+      let domain_index = i - n_adders in
       let rec work () =
-        let n = Util.alloc n_msgs_to_take in
+        let n = Countdown.alloc n_msgs_to_take ~domain_index ~batch:100 in
         if n <> 0 then begin
           for _ = 1 to n do
             ignore (Bounded_q.pop t)

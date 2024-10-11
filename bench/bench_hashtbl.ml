@@ -30,15 +30,15 @@ let run_one ~budgetf ~n_domains ~use_mutex ?(n_keys = 1000) ~percent_mem
   let n_ops = (if use_mutex then 100 else 400) * Util.iter_factor in
   let n_ops = (100 + percent_mem) * n_ops / 100 in
 
-  let n_ops_todo = Atomic.make 0 |> Multicore_magic.copy_as_padded in
+  let n_ops_todo = Countdown.create ~n_domains () in
 
   let init _ =
-    Atomic.set n_ops_todo n_ops;
+    Countdown.non_atomic_set n_ops_todo n_ops;
     Random.State.make_self_init ()
   in
-  let work_no_mutex _ state =
+  let work_no_mutex domain_index state =
     let rec work () =
-      let n = Util.alloc n_ops_todo in
+      let n = Countdown.alloc n_ops_todo ~domain_index ~batch:100 in
       if n <> 0 then
         let rec loop n =
           if 0 < n then
@@ -65,9 +65,9 @@ let run_one ~budgetf ~n_domains ~use_mutex ?(n_keys = 1000) ~percent_mem
     in
     work ()
   in
-  let work_mutex _ state =
+  let work_mutex domain_index state =
     let rec work () =
-      let n = Util.alloc n_ops_todo in
+      let n = Countdown.alloc n_ops_todo ~domain_index ~batch:100 in
       if n <> 0 then
         let rec loop n =
           if 0 < n then

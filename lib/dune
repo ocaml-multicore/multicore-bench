@@ -7,6 +7,12 @@ let () =
   Jbuild_plugin.V1.send
   @@ {|
 
+(rule
+ (enabled_if
+  (< %{ocaml_version} 4.13.0))
+ (action
+  (copy int.ocaml_4_12.ml int.ml)))
+
 (library
  (public_name multicore-bench)
  (name multicore_bench)
