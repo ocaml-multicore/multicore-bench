@@ -1,6 +1,7 @@
 ## Next version
 
 - Ported to OCaml 4.12 (@polytypic)
+- Added scalable `Countdown` counter (@polytypic)
 
 ## 0.1.6
 
