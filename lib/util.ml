@@ -37,14 +37,13 @@ module Bits = struct
     let n = t.length in
     if i < n then begin
       let byte = Char.code (Bytes.unsafe_get t.bytes (i lsr 3)) in
-      fn (0 <> byte land 1);
-      if i + 1 < n then fn (0 <> byte land 2);
-      if i + 2 < n then fn (0 <> byte land 4);
-      if i + 3 < n then fn (0 <> byte land 8);
-      if i + 4 < n then fn (0 <> byte land 16);
-      if i + 5 < n then fn (0 <> byte land 32);
-      if i + 6 < n then fn (0 <> byte land 64);
-      if i + 7 < n then fn (0 <> byte land 128);
+      let bit = ref 1 in
+      let bit_limit = 1 lsl if n - i < 8 then n - i else 8 in
+      while !bit < bit_limit do
+        let b = 0 <> byte land !bit in
+        bit := !bit + !bit;
+        fn b
+      done;
       iter fn t (i + 8)
     end
 
