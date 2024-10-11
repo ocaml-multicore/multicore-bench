@@ -1,3 +1,7 @@
+## Next version
+
+- Ported to OCaml 4.12 (@polytypic)
+
 ## 0.1.6
 
 - Fail when benchmark results have duplicates (@polytypic)
