@@ -110,30 +110,28 @@ create a module `Bench_atomic` for our benchmarks suite on atomics:
            it difficult to get useful results. *)
       in
 
-      (* We store the number of operations to perform in an atomic.  The idea
-         is that we want all the workers or domains to work at the same time
-         as much as possible, because we want to measure performance under
-         contention.  So, instead of e.g. simply having each domain run a
-         fixed count loop, which could lead to some domains finishing well
-         before others, we let the number of operations performed by each domain
-         vary. *)
+      (* We store the number of operations to perform in a scalable countdown
+         counter.  The idea is that we want all the workers or domains to work
+         at the same time as much as possible, because we want to measure
+         performance under contention.  So, instead of e.g. simply having each
+         domain run a fixed count loop, which could lead to some domains
+         finishing well before others, we let the number of operations performed
+         by each domain vary. *)
       let n_ops_to_do =
-        Atomic.make 0
-        |> Multicore_magic.copy_as_padded
-        (* We also explicitly pad the number of ops to avoid false sharing. *)
+        Countdown.create ~n_domains ()
       in
 
       (* [init] is called on each domain before [work].  The return value of
          [init] is passed to [work]. *)
       let init _domain_index =
-        (* It doesn't matter that we set the atomic multiple times.  We could
-           also use a [before] callback to do setup before [work]. *)
-        Atomic.set n_ops_to_do n
+        (* It doesn't matter that we set the countdown counter multiple times.
+           We could also use a [before] callback to do setup before [work]. *)
+        Countdown.non_atomic_set n_ops_to_do n
       in
 
       (* [work] is called on each domain and the time it takes is recorded.
          The second argument comes from [init]. *)
-      let work _domain_index () =
+      let work domain_index () =
         (* Because we are benchmarking operations that take a very small amount
            of time, we run our own loop to perform the operations.  This has
            pros and cons.  One con is that the loop overhead will be part of the
@@ -142,7 +140,7 @@ create a module `Bench_atomic` for our benchmarks suite on atomics:
            ways. *)
         let rec work () =
           (* We try to allocate some number of operations to perform. *)
-          let n = Util.alloc n_ops_to_do in
+          let n = Countdown.alloc n_ops_to_do ~domain_index ~batch:100 in
           (* If we got zero, then we should stop. *)
           if n <> 0 then begin
             (* Otherwise we perform the operations and try again. *)

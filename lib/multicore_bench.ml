@@ -5,4 +5,5 @@ module Unit_of_time = Unit_of_time
 module Times = Times
 module Suite = Suite
 module Cmd = Cmd
+module Countdown = Countdown
 module Util = Util

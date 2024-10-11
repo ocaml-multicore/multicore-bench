@@ -65,7 +65,7 @@ let record (type a) ~budgetf ~n_domains ?(ensure_multi_domain = true)
       wrap;
       results =
         Array.init n_domains (fun _ ->
-            Float.Array.create (max n_runs_min n_runs_max));
+            Float.Array.create (Int.max n_runs_min n_runs_max));
       budget_start = Mtime_clock.elapsed ();
       before;
       init;

@@ -8,7 +8,7 @@ let rec alloc ?(batch = 1000) counter =
   let n = Atomic.get counter in
   if n = 0 then 0
   else
-    let batch = min n batch in
+    let batch = Int.min n batch in
     if Atomic.compare_and_set counter n (n - batch) then batch
     else alloc ~batch counter
 
@@ -33,21 +33,23 @@ module Bits = struct
 
   let length t = t.length
 
-  let rec iter fn t i =
+  let iter fn t =
+    let i = ref 0 in
     let n = t.length in
-    if i < n then begin
-      let byte = Char.code (Bytes.unsafe_get t.bytes (i lsr 3)) in
-      let bit = ref 1 in
-      let bit_limit = 1 lsl if n - i < 8 then n - i else 8 in
-      while !bit < bit_limit do
-        let b = 0 <> byte land !bit in
-        bit := !bit + !bit;
-        fn b
-      done;
-      iter fn t (i + 8)
-    end
-
-  let iter fn t = iter fn t 0
+    while !i < n do
+      let ix = !i in
+      i := !i + 8;
+      let byte = Char.code (Bytes.unsafe_get t.bytes (ix lsr 3)) in
+      let n = n - ix in
+      fn (0 <> byte land 1);
+      if 1 < n then fn (0 <> byte land 2);
+      if 2 < n then fn (0 <> byte land 4);
+      if 3 < n then fn (0 <> byte land 8);
+      if 4 < n then fn (0 <> byte land 16);
+      if 5 < n then fn (0 <> byte land 32);
+      if 6 < n then fn (0 <> byte land 64);
+      if 7 < n then fn (0 <> byte land 128)
+    done
 end
 
 let generate_push_and_pop_sequence ?(state = Random.State.make_self_init ())
