@@ -2,20 +2,18 @@ module Atomic = Multicore_magic.Transparent_atomic
 
 type t = int Atomic.t array
 
-let ceil_pow_2_minus_1 n =
-  let n = Nativeint.of_int n in
-  let n = Nativeint.logor n (Nativeint.shift_right_logical n 1) in
-  let n = Nativeint.logor n (Nativeint.shift_right_logical n 2) in
-  let n = Nativeint.logor n (Nativeint.shift_right_logical n 4) in
-  let n = Nativeint.logor n (Nativeint.shift_right_logical n 8) in
-  let n = Nativeint.logor n (Nativeint.shift_right_logical n 16) in
-  Nativeint.to_int
-    (if Sys.int_size > 32 then
-       Nativeint.logor n (Nativeint.shift_right_logical n 32)
-     else n)
-
 let create ~n_domains () =
   if n_domains < 1 then invalid_arg "n_domains < 1";
+  let ceil_pow_2_minus_1 n =
+    let open Nativeint in
+    let n = of_int n in
+    let n = logor n (shift_right_logical n 1) in
+    let n = logor n (shift_right_logical n 2) in
+    let n = logor n (shift_right_logical n 4) in
+    let n = logor n (shift_right_logical n 8) in
+    let n = logor n (shift_right_logical n 16) in
+    to_int (if Sys.int_size > 32 then logor n (shift_right_logical n 32) else n)
+  in
   let n = ceil_pow_2_minus_1 n_domains in
   let atomics = Array.init n_domains (fun _ -> Atomic.make_contended 0) in
   Array.init n @@ fun i -> Array.unsafe_get atomics (i mod n_domains)
