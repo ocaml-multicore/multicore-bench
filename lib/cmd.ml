@@ -15,13 +15,13 @@ let duplicate kind name x _ =
        (name x |> replace_non_breaking_spaces))
 
 let print_diff base next =
-  List.zip_by
+  List_ext.zip_by
     ~duplicate:(duplicate "benchmark" Benchmark.name)
     String.compare Benchmark.name base next
   |> List.iter @@ fun ((base : Benchmark.t), (next : Benchmark.t)) ->
      Printf.printf "%s:\n" base.name;
      let zipped =
-       List.zip_by
+       List_ext.zip_by
          ~duplicate:(duplicate "metric" Metric.name)
          String.compare Metric.name base.metrics next.metrics
      in
@@ -159,7 +159,7 @@ let run ~benchmarks ?(budgetf = 0.025) ?(filters = []) ?(debug = false)
          match base_results with
          | [] -> Fun.id
          | results ->
-             let (module S) = Set.make String.compare in
+             let (module S) = Set_ext.make String.compare in
              let names = results |> List.map Benchmark.name |> S.of_list in
              List.filter (fun (name, _) -> S.mem name names)
        end

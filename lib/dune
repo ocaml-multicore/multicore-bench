@@ -11,7 +11,13 @@ let () =
  (enabled_if
   (< %{ocaml_version} 4.13.0))
  (action
-  (copy int.ocaml_4_12.ml int.ml)))
+  (copy int_ext.ocaml_lt_4_13.ml int_ext.ml)))
+
+(rule
+ (enabled_if
+  (>= %{ocaml_version} 4.13.0))
+ (action
+  (copy int_ext.ocaml_ge_4_13.ml int_ext.ml)))
 
 (library
  (public_name multicore-bench)
