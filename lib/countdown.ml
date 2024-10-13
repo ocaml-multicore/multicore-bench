@@ -38,17 +38,17 @@ let non_atomic_set t count =
 
 let rec get t count i =
   if i < Array.length t && Array.unsafe_get t i != Array.unsafe_get t 0 then
-    get t (count + Int.max 0 (Atomic.get (Array.unsafe_get t i))) (i + 1)
+    get t (count + Int_ext.max 0 (Atomic.get (Array.unsafe_get t i))) (i + 1)
   else count
 
-let[@inline] get t = get t (Int.max 0 (Atomic.get (Array.unsafe_get t 0))) 1
+let[@inline] get t = get t (Int_ext.max 0 (Atomic.get (Array.unsafe_get t 0))) 1
 
 let rec alloc t ~batch i =
   if i < Array.length t then
     let c = Array.unsafe_get t i in
     if 0 < Atomic.get c then
       let n = Atomic.fetch_and_add c (-batch) in
-      if 0 < n then Int.min n batch else alloc t ~batch (i + 1)
+      if 0 < n then Int_ext.min n batch else alloc t ~batch (i + 1)
     else alloc t ~batch (i + 1)
   else 0
 
@@ -56,5 +56,5 @@ let[@inline] alloc t ~domain_index ~batch =
   let c = Array.unsafe_get t domain_index in
   if 0 < Atomic.get c then
     let n = Atomic.fetch_and_add c (-batch) in
-    if 0 < n then Int.min n batch else alloc t ~batch 0
+    if 0 < n then Int_ext.min n batch else alloc t ~batch 0
   else alloc t ~batch 0

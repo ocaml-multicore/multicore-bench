@@ -1,4 +1,4 @@
-open Option.Syntax
+open Option_ext.Syntax
 
 module Trend = struct
   type t = [ `Lower_is_better | `Higher_is_better ]

@@ -3,5 +3,5 @@ let make (type t) (compare : t -> _) =
     type nonrec t = t
 
     let compare = compare
-  end : Stdlib.Set.OrderedType
+  end : Set.OrderedType
     with type t = t)
