@@ -22,7 +22,7 @@ type t = Op : string * 'a * ('a Ref.t -> unit) * ('a Ref.t -> unit) -> t
 
 (** For some reason allocating the mutex inside [run_one] tends to cause
     performance hiccups, i.e. some operations appear to be 10x slower than
-    others, which doesn't make sense.  So, we allocate the mutex here. *)
+    others, which doesn't make sense. So, we allocate the mutex here. *)
 let mutex = Mutex.create ()
 
 let run_one ~budgetf ?(n_iter = 250 * Util.iter_factor)
