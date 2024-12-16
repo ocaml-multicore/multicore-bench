@@ -30,8 +30,8 @@ module Metric : sig
     ?description:string ->
     [< `Float of float ] ->
     t
-  (** [make ~metric ~config value] constructs a metric with given
-      specification. *)
+  (** [make ~metric ~config value] constructs a metric with given specification.
+  *)
 end
 
 module Unit_of_rate : sig
@@ -96,28 +96,28 @@ module Times : sig
   (** [record ~budgetf ~n_domains ~init ~work ()] essentially repeatedly runs
       [let x = init i in wrap i x (fun () -> .. work i x ..)] on specified
       number of domains, [i ∊ [0, n_domains-1]], and records the times that
-      calls of [work] take.  The calls of [work] are synchronized to start as
+      calls of [work] take. The calls of [work] are synchronized to start as
       simultaneously as possible.
 
       Optional arguments:
 
       - [~ensure_multi_domain]: Whether to run an extra busy untimed domain when
-        [n_domains] is [1].  Doing so prevents the OCaml runtime from using
-        specialized runtime implementations.  Defaults to [true].
+        [n_domains] is [1]. Doing so prevents the OCaml runtime from using
+        specialized runtime implementations. Defaults to [true].
 
       - [~domain_local_await]: Specifies whether and how to configure
         {{:https://github.com/ocaml-multicore/domain-local-await/}domain-local-await}
-        or DLA.  [`Neglect] does not reconfigure DLA.  [`Busy_wait] configures
-        DLA to use a busy-wait implementation, which prevents domains from going
-        to sleep.  Defaults to [`Busy_wait].
+        or DLA. [`Neglect] does not reconfigure DLA. [`Busy_wait] configures DLA
+        to use a busy-wait implementation, which prevents domains from going to
+        sleep. Defaults to [`Busy_wait].
 
       - [~n_warmups]: Specifies the number of warmup runs to perform before the
-        actual measurements.  Defaults to [3].
+        actual measurements. Defaults to [3].
 
-      - [~n_runs_min]: Specifies the minimum number of timed runs.  The upper
+      - [~n_runs_min]: Specifies the minimum number of timed runs. The upper
         bound is determined dynamically based on [budgetf]. Defaults to [7].
 
-      - [~n_runs_max]: Specifies the maximum number of timed runs.  Defaults to
+      - [~n_runs_max]: Specifies the maximum number of timed runs. Defaults to
         [1023].
 
       - [~before]: Specifies an action to run on one domain before [init].
@@ -140,7 +140,7 @@ module Times : sig
 
       Optional arguments:
 
-      - [~plural]: Plural for the operation.  Defaults to [singular ^ "s"].
+      - [~plural]: Plural for the operation. Defaults to [singular ^ "s"].
 
       - [~unit_of_time]: Unit of time for the duration of a single operation.
         Defaults to [`ns].
@@ -164,12 +164,11 @@ module Cmd : sig
   type output =
     [ `JSON
       (** [`JSON] gives the JSON output for
-          {{:https://github.com/ocurrent/current-bench}current-bench}. *)
+          {{:https://github.com/ocurrent/current-bench} current-bench}. *)
     | `Brief  (** [`Brief] gives concise human readable output. *)
     | `Diff of string
       (** [`Diff "path.json"] gives concise human readable diff against results
-          stored in specified [path.json] file. *)
-    ]
+          stored in specified [path.json] file. *) ]
   (** Specifies the output format. *)
 
   val run :
@@ -189,27 +188,27 @@ module Cmd : sig
       Optional arguments:
 
       - [~budgetf]: A budget (usually) in seconds passed to each benchmark
-        suite.  This defaults to a small number so that a benchmark suite can be
+        suite. This defaults to a small number so that a benchmark suite can be
         used as a test.
 
       - [~filters]: A list of regular expressions to match names of benchmark
-        suites.  If any regular expression matches the name of benchmark, then
-        that benchmark will be run.  Defaults to [[]].
+        suites. If any regular expression matches the name of benchmark, then
+        that benchmark will be run. Defaults to [[]].
 
-      - [~debug]: Print progress information to help debugging.  Defaults to
+      - [~debug]: Print progress information to help debugging. Defaults to
         [false].
 
-      - [~output]: Output mode.  Defaults to [`JSON].
+      - [~output]: Output mode. Defaults to [`JSON].
 
-      - [~argv]: Array of command line arguments.  Defaults to [Sys.argv].
+      - [~argv]: Array of command line arguments. Defaults to [Sys.argv].
 
       - [~flush]: Whether to flush the standard output after writing it.
         Defaults to [true].
 
-      - [~randomize]: Whether to randomize the order of suites or not.  Defaults
+      - [~randomize]: Whether to randomize the order of suites or not. Defaults
         to [true].
 
-      Command line arguments take precedence over the optional arguments.  In
+      Command line arguments take precedence over the optional arguments. In
       other words, you can specify the optional arguments to give defaults for
       the benchmark executable. *)
 end
@@ -227,7 +226,7 @@ module Countdown : sig
   val non_atomic_set : t -> int -> unit
   (** [non_atomic_set countdown count] sets the [count] of the [countdown].
 
-      ⚠️ This operation is not atomic.  However, it is safe to call
+      ⚠️ This operation is not atomic. However, it is safe to call
       [non_atomic_set] with the same [countdown] and [count] in parallel,
       because the [countdown] will be initialized deterministically. *)
 
@@ -288,7 +287,7 @@ module Util : sig
   val generate_push_and_pop_sequence : ?state:Random.State.t -> int -> Bits.t
   (** [generate_push_and_pop_sequence n] generates a bitset where each [true]
       bit represents a "push" operation and each [false] bit represents a
-      "try_pop" operation.  Performing the operations on an initially empty
-      dispenser leaves the dispenser empty.  The sequence may include "try_pop"
+      "try_pop" operation. Performing the operations on an initially empty
+      dispenser leaves the dispenser empty. The sequence may include "try_pop"
       operations at points where the dispenser will be empty. *)
 end
