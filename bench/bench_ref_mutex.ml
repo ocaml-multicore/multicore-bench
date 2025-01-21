@@ -18,7 +18,7 @@ module Ref = struct
     before
 end
 
-type t = Op : string * 'a * ('a Ref.t -> unit) * ('a Ref.t -> unit) -> t
+type t = Op : string * 'a * ('a Ref.t -> _) * ('a Ref.t -> _) -> t
 
 (** For some reason allocating the mutex inside [run_one] tends to cause
     performance hiccups, i.e. some operations appear to be 10x slower than
@@ -34,10 +34,10 @@ let run_one ~budgetf ?(n_iter = 250 * Util.iter_factor)
     let rec loop i =
       if i > 0 then begin
         Mutex.lock mutex;
-        op1 loc;
+        op1 loc |> ignore;
         Mutex.unlock mutex;
         Mutex.lock mutex;
-        op2 loc;
+        op2 loc |> ignore;
         Mutex.unlock mutex;
         loop (i - 2)
       end
@@ -50,18 +50,17 @@ let run_one ~budgetf ?(n_iter = 250 * Util.iter_factor)
 
 let run_suite ~budgetf =
   [
-    (let get x = !x |> ignore in
+    (let get x = !x in
      Op ("get", 42, get, get));
     (let incr x = x := !x + 1 in
      Op ("incr", 0, incr, incr));
     (let push x = x := 101 :: !x
      and pop x = match !x with [] -> () | _ :: xs -> x := xs in
      Op ("push & pop", [], push, pop));
-    (let cas01 x = Ref.compare_and_set x 0 1 |> ignore
-     and cas10 x = Ref.compare_and_set x 1 0 |> ignore in
+    (let cas01 x = Ref.compare_and_set x 0 1
+     and cas10 x = Ref.compare_and_set x 1 0 in
      Op ("cas int", 0, cas01, cas10));
-    (let xchg1 x = Ref.exchange x 1 |> ignore
-     and xchg0 x = Ref.exchange x 0 |> ignore in
+    (let xchg1 x = Ref.exchange x 1 and xchg0 x = Ref.exchange x 0 in
      Op ("xchg int", 0, xchg1, xchg0));
     (let swap x =
        let l, r = !x in

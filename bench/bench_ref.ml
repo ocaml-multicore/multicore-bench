@@ -26,7 +26,7 @@ module Ref = struct
       modify ~backoff:(Backoff.once backoff) x f
 end
 
-type t = Op : string * int * 'a * ('a Ref.t -> unit) * ('a Ref.t -> unit) -> t
+type t = Op : string * int * 'a * ('a Ref.t -> _) * ('a Ref.t -> _) -> t
 
 let run_one ~budgetf ?(n_iter = 500 * Util.iter_factor)
     (Op (name, extra, value, op1, op2)) =
@@ -38,8 +38,8 @@ let run_one ~budgetf ?(n_iter = 500 * Util.iter_factor)
   let work _ () =
     let rec loop i =
       if i > 0 then begin
-        op1 loc;
-        op2 loc;
+        op1 loc |> ignore;
+        op2 loc |> ignore;
         loop (i - 2)
       end
     in
@@ -51,18 +51,17 @@ let run_one ~budgetf ?(n_iter = 500 * Util.iter_factor)
 
 let run_suite ~budgetf =
   [
-    (let get x = Ref.get x |> ignore in
+    (let get x = Ref.get x in
      Op ("get", 10, 42, get, get));
     (let incr x = Ref.incr x in
      Op ("incr", 1, 0, incr, incr));
     (let push x = Ref.modify x (fun xs -> 101 :: xs)
      and pop x = Ref.modify x (function [] -> [] | _ :: xs -> xs) in
      Op ("push & pop", 2, [], push, pop));
-    (let cas01 x = Ref.compare_and_set x 0 1 |> ignore
-     and cas10 x = Ref.compare_and_set x 1 0 |> ignore in
+    (let cas01 x = Ref.compare_and_set x 0 1
+     and cas10 x = Ref.compare_and_set x 1 0 in
      Op ("cas int", 1, 0, cas01, cas10));
-    (let xchg1 x = Ref.exchange x 1 |> ignore
-     and xchg0 x = Ref.exchange x 0 |> ignore in
+    (let xchg1 x = Ref.exchange x 1 and xchg0 x = Ref.exchange x 0 in
      Op ("xchg int", 1, 0, xchg1, xchg0));
     (let swap x = Ref.modify x (fun (x, y) -> (y, x)) in
      Op ("swap", 2, (4, 2), swap, swap));
