@@ -4,7 +4,9 @@ module Queue = Stdlib.Queue
 let run_one_domain ~budgetf ?(n_msgs = 50 * Util.iter_factor) () =
   let t = Queue.create () in
 
-  let op push = if push then Queue.push 101 t else Queue.take_opt t |> ignore in
+  let op push =
+    if push then Queue.push (ref push) t else Queue.take_opt t |> ignore
+  in
 
   let init _ =
     assert (Queue.is_empty t);

@@ -4,7 +4,9 @@ module Stack = Stdlib.Stack
 let run_one_domain ~budgetf ?(n_msgs = 50 * Util.iter_factor) () =
   let t = Stack.create () in
 
-  let op push = if push then Stack.push 101 t else Stack.pop_opt t |> ignore in
+  let op push =
+    if push then Stack.push (ref push) t else Stack.pop_opt t |> ignore
+  in
 
   let init _ =
     assert (Stack.is_empty t);
