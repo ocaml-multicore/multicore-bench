@@ -22,7 +22,7 @@ end = struct
     if capacity < 0 then invalid_arg "negative capacity"
     else
       let mutex = Mutex.create ()
-      and queue = Queue.create ()
+      and queue = Queue.create () |> Multicore_magic.copy_as_padded
       and not_empty = Condition.create ()
       and not_full = Condition.create () in
       { mutex; queue; capacity; not_empty; not_full }
