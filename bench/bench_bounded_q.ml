@@ -26,6 +26,7 @@ end = struct
       and not_empty = Condition.create ()
       and not_full = Condition.create () in
       { mutex; queue; capacity; not_empty; not_full }
+      |> Multicore_magic.copy_as_padded
 
   let is_empty t =
     Mutex.lock t.mutex;
@@ -36,9 +37,11 @@ end = struct
   let is_full_unsafe t = t.capacity <= Queue.length t.queue
 
   let push t x =
+    let was_full = ref false in
     Mutex.lock t.mutex;
     match
       while is_full_unsafe t do
+        was_full := true;
         Condition.wait t.not_full t.mutex
       done
     with
@@ -46,15 +49,18 @@ end = struct
         Queue.push x t.queue;
         let n = Queue.length t.queue in
         Mutex.unlock t.mutex;
-        if n = 1 then Condition.broadcast t.not_empty
+        if n = 1 then Condition.signal t.not_empty;
+        if !was_full && n < t.capacity then Condition.signal t.not_full
     | exception exn ->
         Mutex.unlock t.mutex;
         raise exn
 
   let pop t =
+    let was_empty = ref false in
     Mutex.lock t.mutex;
     match
       while Queue.length t.queue = 0 do
+        was_empty := true;
         Condition.wait t.not_empty t.mutex
       done
     with
@@ -62,7 +68,8 @@ end = struct
         let n = Queue.length t.queue in
         let elem = Queue.pop t.queue in
         Mutex.unlock t.mutex;
-        if n = t.capacity then Condition.broadcast t.not_full;
+        if n = t.capacity then Condition.signal t.not_full;
+        if !was_empty && 1 < n then Condition.signal t.not_empty;
         elem
     | exception exn ->
         Mutex.unlock t.mutex;
@@ -73,7 +80,7 @@ end = struct
     let n = Queue.length t.queue in
     let elem_opt = Queue.take_opt t.queue in
     Mutex.unlock t.mutex;
-    if n = t.capacity then Condition.broadcast t.not_full;
+    if n = t.capacity then Condition.signal t.not_full;
     elem_opt
 end
 
