@@ -26,24 +26,120 @@ module Ref = struct
       modify ~backoff:(Backoff.once backoff) x f
 end
 
-type t = Op : string * int * 'a * ('a Ref.t -> _) * ('a Ref.t -> _) -> t
+type _ op =
+  | Get : int op
+  | Incr : int op
+  | Push_and_pop : int list op
+  | Cas_int : int op
+  | Xchg_int : int op
+  | Swap : (int * int) op
 
-let run_one ~budgetf ?(n_iter = 500 * Util.iter_factor)
-    (Op (name, extra, value, op1, op2)) =
+let run_one (type a) ~budgetf ?(n_iter = 500 * Util.iter_factor) (op : a op) =
+  let name, extra, (value : a) =
+    match op with
+    | Get -> ("get", 10, 42)
+    | Incr -> ("incr", 1, 0)
+    | Push_and_pop -> ("push & pop", 2, [])
+    | Cas_int -> ("cas int", 1, 0)
+    | Xchg_int -> ("xchg int", 1, 0)
+    | Swap -> ("swap", 1, (4, 2))
+  in
+
   let n_iter = n_iter * extra in
 
   let loc = Ref.make value in
 
   let init _ = () in
   let work _ () =
-    let rec loop i =
-      if i > 0 then begin
-        op1 loc |> ignore;
-        op2 loc |> ignore;
-        loop (i - 2)
-      end
-    in
-    loop n_iter
+    match op with
+    | Get ->
+        let rec loop i =
+          if i > 0 then begin
+            let a =
+              Ref.get (Sys.opaque_identity loc)
+              land Ref.get (Sys.opaque_identity loc)
+            and b =
+              Ref.get (Sys.opaque_identity loc)
+              land Ref.get (Sys.opaque_identity loc)
+            and c =
+              Ref.get (Sys.opaque_identity loc)
+              land Ref.get (Sys.opaque_identity loc)
+            and d =
+              Ref.get (Sys.opaque_identity loc)
+              land Ref.get (Sys.opaque_identity loc)
+            in
+            loop (i - 8 + (a - b) + (c - d))
+          end
+        in
+        loop n_iter
+    | Incr ->
+        let rec loop i =
+          if i > 0 then begin
+            Ref.incr loc;
+            Ref.incr loc;
+            Ref.incr loc;
+            Ref.incr loc;
+            Ref.incr loc;
+            Ref.incr loc;
+            loop (i - 6)
+          end
+        in
+        loop n_iter
+    | Push_and_pop ->
+        let[@inline] push x = Ref.modify x (fun xs -> 101 :: xs)
+        and[@inline] pop x =
+          Ref.modify x (function [] -> [] | _ :: xs -> xs)
+        in
+        let rec loop i =
+          if i > 0 then begin
+            push loc;
+            pop loc |> ignore;
+            push loc;
+            pop loc |> ignore;
+            loop (i - 4)
+          end
+        in
+        loop n_iter
+    | Cas_int ->
+        let rec loop i =
+          if i > 0 then begin
+            Ref.compare_and_set loc 0 1 |> ignore;
+            Ref.compare_and_set loc 1 0 |> ignore;
+            Ref.compare_and_set loc 0 1 |> ignore;
+            Ref.compare_and_set loc 1 0 |> ignore;
+            Ref.compare_and_set loc 0 1 |> ignore;
+            Ref.compare_and_set loc 1 0 |> ignore;
+            loop (i - 6)
+          end
+        in
+        loop n_iter
+    | Xchg_int ->
+        let rec loop i =
+          if i > 0 then begin
+            Ref.exchange loc 1 |> ignore;
+            Ref.exchange loc 0 |> ignore;
+            Ref.exchange loc 1 |> ignore;
+            Ref.exchange loc 0 |> ignore;
+            Ref.exchange loc 1 |> ignore;
+            Ref.exchange loc 0 |> ignore;
+            loop (i - 6)
+          end
+        in
+        loop n_iter
+    | Swap ->
+        let[@inline] swap x = Ref.modify x (fun (x, y) -> (y, x)) in
+        let rec loop i =
+          if i > 0 then begin
+            swap loc;
+            swap loc;
+            swap loc;
+            swap loc;
+            swap loc;
+            swap loc;
+            loop (i - 6)
+          end
+        in
+        loop n_iter
   in
 
   Times.record ~budgetf ~n_domains:1 ~init ~work ()
@@ -51,19 +147,11 @@ let run_one ~budgetf ?(n_iter = 500 * Util.iter_factor)
 
 let run_suite ~budgetf =
   [
-    (let get x = Ref.get x in
-     Op ("get", 10, 42, get, get));
-    (let incr x = Ref.incr x in
-     Op ("incr", 1, 0, incr, incr));
-    (let push x = Ref.modify x (fun xs -> 101 :: xs)
-     and pop x = Ref.modify x (function [] -> [] | _ :: xs -> xs) in
-     Op ("push & pop", 2, [], push, pop));
-    (let cas01 x = Ref.compare_and_set x 0 1
-     and cas10 x = Ref.compare_and_set x 1 0 in
-     Op ("cas int", 1, 0, cas01, cas10));
-    (let xchg1 x = Ref.exchange x 1 and xchg0 x = Ref.exchange x 0 in
-     Op ("xchg int", 1, 0, xchg1, xchg0));
-    (let swap x = Ref.modify x (fun (x, y) -> (y, x)) in
-     Op ("swap", 2, (4, 2), swap, swap));
+    run_one ~budgetf Get;
+    run_one ~budgetf Incr;
+    run_one ~budgetf Push_and_pop;
+    run_one ~budgetf Cas_int;
+    run_one ~budgetf Xchg_int;
+    run_one ~budgetf Swap;
   ]
-  |> List.concat_map @@ run_one ~budgetf
+  |> List.concat
